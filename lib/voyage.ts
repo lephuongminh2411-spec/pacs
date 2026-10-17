@@ -1,0 +1,16 @@
+import {conditions,minutes} from './schedule';
+export const PREP_MINUTES=0,TRANSFER_MINUTES=0;
+export const tripInstant=(t:any)=>Date.parse(`${t.date}T${t.time}:00+07:00`);
+export function assignmentWindow(t:any){const start=tripInstant(t);return {start:start-PREP_MINUTES*60000,end:start+(conditions(t.time,t.draft,t.date,t.direction==='out'?t.from:t.port).transit+TRANSFER_MINUTES)*60000}}
+export function assignmentConflicts(trips:any[],trip:any,pilot:string){if(!pilot)return [];const w=assignmentWindow(trip);return trips.filter(t=>t.id!==trip.id&&t.assigned===pilot&&['assigned','departed','sailing'].includes(t.status)).filter(t=>{const other=assignmentWindow(t);return w.start<other.end&&w.end>other.start})}
+export function pickupPlanKey(t:any){return t.date+'T'+t.time}
+export function pickupPlanDue(t:any,now:number,simulation?:{id:string;minute:number}|null){if(!t.assigned||!['assigned','departed'].includes(t.status)||t.pickupPlanAckKey===pickupPlanKey(t))return false;const target=tripInstant(t),at=simulation&&simulation.id===t.id?target+(simulation.minute-minutes(t.time))*60000:now;return at>=target-120*60000&&at<target}
+export function sanitizeTrackFrame(raw:any,at=Date.now()){
+ const point=(p:any)=>p&&Number.isFinite(p.lat)&&p.lat>=9.8&&p.lat<=11.2&&Number.isFinite(p.lon)&&p.lon>=106.4&&p.lon<=107.7&&Number.isFinite(p.heading)&&Number.isFinite(p.sog??0);
+ if(!point(raw?.own))return null;const pick=(p:any)=>({lat:+p.lat.toFixed(6),lon:+p.lon.toFixed(6),heading:((p.heading%360)+360)%360,sog:Math.max(0,Math.min(60,p.sog||0))});
+ return {at,aisFailure:!!raw.aisFailure,scenario:['crossing','wind','crosswind','current','visibility','overtaking','combined','ukc','ais','stop'].includes(raw.scenario)?raw.scenario:'',simMinute:Number.isFinite(raw.simMinute)?raw.simMinute:null,own:pick(raw.own),targets:(Array.isArray(raw.targets)?raw.targets:[]).slice(0,20).filter(point).map((p:any)=>({...pick(p),id:String(p.id||'').slice(0,40),name:String(p.name||'Tàu').slice(0,80)}))};
+}
+export function appendTrack(track:any[],frame:any){if(!frame)return track;let frames=Array.isArray(track)?track:[];if(frames.length&&frame.at-frames[frames.length-1].at<5000&&frame.scenario===frames[frames.length-1].scenario&&frame.aisFailure===frames[frames.length-1].aisFailure)return frames;if(frames.length>=360)frames=frames.filter((_,i)=>i%2===0);return [...frames,frame]}
+export function alertHistory(alert:any){return [{at:alert.at,by:alert.by||'PACS',status:'new'},...(alert.history||[])].sort((a,b)=>a.at-b.at)}
+export function interpolateFrame(a:any,b:any,ratio:number){if(!a)return null;if(!b)return a;const k=Math.max(0,Math.min(1,ratio)),point=(x:any,y:any)=>({...x,lat:x.lat+(y.lat-x.lat)*k,lon:x.lon+(y.lon-x.lon)*k,heading:((x.heading+(((y.heading-x.heading+540)%360)-180)*k)%360+360)%360,sog:x.sog+(y.sog-x.sog)*k});return {...a,at:a.at+(b.at-a.at)*k,own:point(a.own,b.own),targets:a.targets.map((p:any)=>point(p,b.targets.find((v:any)=>v.id===p.id)||p))}}
+export function trackDistanceNm(frames:any[]){let total=0;for(let i=1;i<frames.length;i++){const a=frames[i-1].own,b=frames[i].own,r=Math.PI/180,dlat=(b.lat-a.lat)*r,dlon=(b.lon-a.lon)*r,q=Math.sin(dlat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dlon/2)**2;total+=6371000*2*Math.atan2(Math.sqrt(q),Math.sqrt(Math.max(0,1-q)))}return total/1852}

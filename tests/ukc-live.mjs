@@ -1,0 +1,12 @@
+import fs from 'node:fs';import vm from 'node:vm';import ts from 'typescript';import assert from 'node:assert/strict';
+const html=fs.readFileSync('public/legacy-map.html','utf8'),scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n');
+const ast=ts.createSourceFile('map.js',scripts,ts.ScriptTarget.Latest,true),functions=ast.statements.filter(n=>ts.isFunctionDeclaration(n)&&['ukcSnapshot','computeUkcValue','renderUkcSheet'].includes(n.name?.text)).map(n=>n.getText(ast)).join('\n');
+const nodes={},rows=Array.from({length:5},()=>({})),sheet={querySelector:s=>nodes[s]||=( {style:{}}),querySelectorAll:()=>rows};
+const c=vm.createContext({window:{pacsDraft:12,pacsTripDate:'2026-10-17'},navState:{sog:8},simSeconds:600*60,UKC_ZONE:{cx:0,cy:0,rx:100,ry:100},ownPos:{x:100,y:0},ukcZone:'green',currentUkcValue:0,document:{getElementById:()=>sheet}});
+vm.runInContext(fs.readFileSync('public/ukc-model.js','utf8')+'\n'+functions,c);
+const calc=x=>vm.runInContext(x,c),a=calc('ukcSnapshot(ownPos,8)'),b=calc('ukcSnapshot(ownPos,4)');assert.equal(a.squat/b.squat,4);assert.ok(b.ukc>a.ukc);assert.equal(calc('ukcSnapshot(ownPos,0).squat'),0);
+assert.equal(calc('computeUkcValue(ownPos)'),a.ukc);c.window.pacsDraft=13;assert.ok(Math.abs(calc('computeUkcValue(ownPos)')-a.ukc+1)<1e-9);c.window.pacsLowWater=true;assert.ok(Math.abs(calc('computeUkcValue(ownPos)')-a.ukc+1.9)<1e-9);
+c.window.pacsLowWater=false;c.window.pacsDraft=12;c.simSeconds+=3600;assert.notEqual(calc('computeUkcValue(ownPos)'),a.ukc);assert.notEqual(calc('computeUkcValue({x:300,y:0})'),calc('computeUkcValue(ownPos)'));
+calc('renderUkcSheet()');const sum=rows.reduce((n,r)=>n+parseFloat(r.textContent),0);assert.ok(Math.abs(sum-parseFloat(nodes['.ukc-big'].textContent))<.007);assert.match(nodes['.ukc-speed'].textContent,/8.00/);
+assert.ok(html.indexOf('/ukc-model.js')<html.indexOf('function ukcSnapshot'));assert.match(html,/computeUkcValue\(point,speed\)/);
+console.log('PASS: squat follows speed squared; zero speed removes squat; UKC responds to tide, draft, position and low-water events; sheet arithmetic and maneuver speeds agree.');

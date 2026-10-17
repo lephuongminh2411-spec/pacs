@@ -1,0 +1,31 @@
+{
+  "provider": "Esri World Imagery",
+  "exportedAt": "2026-10-16",
+  "imageSize": [
+    2048,
+    4096
+  ],
+  "boundsWGS84": [
+    [
+      10.184466463712662,
+      106.9
+    ],
+    [
+      10.715507780002362,
+      107.17000000000002
+    ]
+  ],
+  "exportExtent": {
+    "xmin": 11900053.565800944,
+    "ymin": 1139747.4256246611,
+    "xmax": 11930109.82831513,
+    "ymax": 1199859.9506530315,
+    "spatialReference": {
+      "wkid": 102100,
+      "latestWkid": 3857
+    }
+  },
+  "source": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+  "copyright": "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+  "note": "Export date is not imagery acquisition date. Geographic background, not ENC or live imagery."
+}

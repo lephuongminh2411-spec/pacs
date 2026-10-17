@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "pacs-pilot",
+  "name": "pacs",
   "main": "vinext/server/fetch-handler",
   "compatibility_date": "2026-05-15",
   "compatibility_flags": [
@@ -9,5 +9,11 @@
   "workers_dev": true,
   "observability": {
     "enabled": true
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pacs-pilot-db"
+    }
+  ]
 }

@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preload" href="/fonts/pacs-sans-regular.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="/fonts/pacs-sans-bold.woff" as="font" type="font/woff" crossorigin>
+<title>PACS - Pilot Advisory &amp; Collision Support System</title>
+
+
+<style>
+:root{
+  --bg:#F5F8FC; --bg-2:#EDF3FB; --panel:#FFFFFF; --panel-2:#F2F6FC;
+  --border:#D8E3F2; --border-soft:#E6EDF8;
+  --text:#101B2D; --text-dim:#51637F; --text-faint:#8A9AB5;
+  --accent:#2563EB; --accent-dim:#DDE9FF;
+  --safe:#16A34A; --safe-bg:#E7F7ED;
+  --warn:#D97706; --warn-bg:#FDF1DE;
+  --danger:#DC2626; --danger-bg:#FCE8E7;
+  --water:#CFE7F2; --land:#E9DEC0; --chart-text:#4A6178;
+  --shadow:0 2px 8px rgba(16,27,45,0.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Inter',-apple-system,sans-serif;background:#DDE5EE;color:var(--text);
+  display:flex;justify-content:center;align-items:flex-start;padding:20px 10px;min-height:100vh;}
+.mono{font-family:'Roboto Mono',monospace;}
+
+.ipad{width:min(1000px,calc(100vw - 20px));height:min(700px,calc(100vh - 28px));background:#e4e9f0;border-radius:22px;padding:11px;
+  box-shadow:0 40px 90px rgba(20,30,50,0.35);position:relative;}
+.ipad::before{content:"";position:absolute;top:5px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:#b9c4d3;}
+.screen-frame{width:100%;height:100%;background:var(--bg);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+
+.devstatus{display:flex;align-items:center;justify-content:space-between;padding:9px 20px;font-size:11px;color:var(--text-dim);background:var(--panel);flex-shrink:0;border-bottom:1px solid var(--border-soft);}
+.devstatus .left{display:flex;gap:14px;align-items:center;}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;}
+.dot.on{background:var(--safe);} .dot.off{background:var(--danger);}
+.devstatus .time{font-weight:700;color:var(--text);}
+
+.app-shell{flex:1;display:flex;min-height:0;}
+.app-shell.hidden{display:none;}
+.sidenav{width:80px;background:var(--panel);border-right:1px solid var(--border-soft);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px;flex-shrink:0;}
+.navitem{width:62px;padding:9px 0 7px;border-radius:11px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-faint);cursor:pointer;position:relative;}
+.navitem.active{background:var(--accent-dim);color:var(--accent);}
+.navitem span{font-size:9px;font-weight:600;}
+.navbadge{position:absolute;top:0px;right:8px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;}
+.appbar{display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--border-soft);flex-shrink:0;background:var(--panel);}
+.appbar .title{font-size:16.5px;font-weight:700;}
+.appbar .sub{font-size:11.5px;color:var(--text-dim);margin-top:1px;}
+.iconbtn{width:34px;height:34px;border-radius:9px;background:var(--panel-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;flex-shrink:0;}
+.content{padding:18px 22px;flex:1;overflow-y:auto;}
+.content::-webkit-scrollbar{width:6px;} .content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.screen-panel{flex:1;flex-direction:column;min-height:0;}
+#screen-planning{flex-direction:column;min-height:0;}
+#screen-planning .content{min-height:0;padding-bottom:38px;}
+
+.section-label{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.6px;margin:4px 0 10px;font-weight:700;}
+.badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.badge.safe{background:var(--safe-bg);color:var(--safe);}
+.badge.warn{background:var(--warn-bg);color:var(--warn);}
+.badge.danger{background:var(--danger-bg);color:var(--danger);}
+.badge.neutral{background:var(--border-soft);color:var(--text-dim);}
+
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-secondary{background:var(--panel);color:var(--text);border:1px solid var(--border);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-danger-outline{background:#fff;color:var(--danger);border:1px solid var(--danger);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
+
+/* LOGIN */
+#screen-login{flex:1;display:flex;align-items:center;justify-content:center;}
+.login-box{width:340px;}
+.login-logo{display:flex;flex-direction:column;align-items:center;margin-bottom:24px;}
+.login-logo svg{width:44px;height:44px;margin-bottom:10px;}
+.login-logo .brand{font-size:23px;font-weight:800;letter-spacing:1px;color:var(--accent);}
+.login-logo .tag{font-size:10px;color:var(--text-dim);text-align:center;letter-spacing:0.4px;margin-top:3px;line-height:1.5;}
+.field-label{font-size:12px;color:var(--text-dim);margin:13px 0 6px;}
+.input-wrap{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.input-wrap input{background:none;border:none;outline:none;color:var(--text);font-size:14px;flex:1;font-family:'Inter',sans-serif;}
+.input-wrap svg{flex-shrink:0;color:var(--text-faint);}
+.checkline{display:flex;align-items:center;gap:8px;margin:14px 0 4px;font-size:12.5px;color:var(--text-dim);}
+.checkline input{accent-color:var(--accent);width:15px;height:15px;}
+.login-note{font-size:11px;color:var(--text-faint);text-align:center;margin-top:16px;}
+.btn-primary.full{width:100%;padding:13px;margin-top:16px;}
+
+/* CARDS */
+.voy-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 15px;margin-bottom:11px;cursor:pointer;box-shadow:var(--shadow);}
+.voy-card .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.voy-card .vname{font-size:14.5px;font-weight:700;}
+.voy-card .vroute{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+.voy-meta{display:flex;gap:16px;margin-top:9px;font-size:11px;color:var(--text-dim);}
+.voy-meta b{color:var(--text);font-weight:700;}
+.slot-line{display:flex;align-items:center;gap:8px;margin-top:9px;padding:7px 10px;background:var(--panel-2);border-radius:8px;font-size:11.5px;color:var(--text-dim);}
+.slot-line b{color:var(--text);}
+.board-banner{display:flex;align-items:center;justify-content:space-between;background:var(--accent-dim);border:1px solid #B9D2FF;border-radius:12px;padding:13px 16px;margin-bottom:16px;}
+.board-banner .bt{font-size:13px;font-weight:700;color:#1D4ED8;}
+.board-banner .bs{font-size:11px;color:#3457A8;margin-top:2px;}
+
+/* PLANNING */
+.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:12px 0 16px;}
+.info-cell{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.info-cell .k{font-size:10px;color:var(--text-faint);}
+.info-cell .v{font-size:13px;font-weight:700;margin-top:2px;}
+.allocated-box{display:flex;justify-content:space-between;align-items:center;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:14px 0;}
+.allocated-box .k{font-size:10px;color:var(--text-faint);}
+.allocated-box .v{font-size:15px;font-weight:800;margin-top:2px;}
+.fc-table{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:12px;}
+.fc-table th{text-align:left;font-size:9.5px;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:0.3px;padding:0 8px 8px;border-bottom:1px solid var(--border-soft);}
+.fc-table td{padding:9px 8px;border-bottom:1px solid var(--border-soft);color:var(--text-dim);}
+.fc-table td:first-child{color:var(--text);font-weight:700;}
+.chart-box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin:16px 0;box-shadow:var(--shadow);}
+.chart-title{font-size:12px;font-weight:700;margin-bottom:2px;}
+.chart-sub{font-size:10px;color:var(--text-dim);margin-bottom:4px;}
+.scrub-readout{font-size:12px;font-weight:700;margin-bottom:8px;}
+.rec-card{border-radius:12px;padding:14px 16px;margin:14px 0;border:1px solid var(--safe);background:var(--safe-bg);}
+.rec-card.danger{border-color:var(--danger);background:var(--danger-bg);}
+.rec-card .rl{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;color:var(--safe);text-transform:uppercase;letter-spacing:0.4px;}
+.rec-card.danger .rl{color:var(--danger);}
+.rec-card .rt{font-size:12.5px;margin-top:8px;line-height:1.55;}
+.rec-card .rt b{font-weight:800;}
+.rec-card .alt-time{margin-top:10px;padding:9px 12px;background:#fff;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--safe);border:1px solid var(--safe);}
+.rec-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.alt-picker{width:100%;}
+.alt-select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;outline:none;}
+.alt-hint{font-size:10.5px;color:var(--text-dim);margin-top:6px;line-height:1.4;}
+.keep-old-link{width:100%;text-align:center;font-size:11.5px;color:var(--text-dim);text-decoration:underline;cursor:pointer;margin-top:4px;padding:4px;}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;border-radius:10px;padding:12px 18px;font-size:12.5px;box-shadow:0 10px 30px rgba(0,0,0,0.3);opacity:0;pointer-events:none;transition:all 0.25s ease;z-index:60;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(16,27,45,0.4);display:none;align-items:center;justify-content:center;z-index:70;}
+.modal-overlay.show{display:flex;}
+.modal-box{width:400px;background:var(--panel);border-radius:14px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,0.3);}
+.modal-box h3{font-size:14.5px;font-weight:700;margin-bottom:10px;}
+.modal-box textarea{width:100%;min-height:90px;border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Inter',sans-serif;font-size:12.5px;resize:none;outline:none;color:var(--text);}
+.modal-actions{display:flex;gap:8px;margin-top:12px;}
+.modal-actions button{flex:1;}
+
+/* TIMETABLE */
+.tt-row{display:flex;gap:14px;align-items:center;padding:13px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--panel);box-shadow:var(--shadow);}
+.tt-time{width:130px;flex-shrink:0;font-size:13px;font-weight:800;font-family:'Roboto Mono',monospace;color:var(--accent);white-space:nowrap;}
+.tt-body{flex:1;}
+.tt-name{font-size:13px;font-weight:700;}
+.tt-sub{font-size:10.5px;color:var(--text-dim);margin-top:1px;}
+.tt-board-btn{padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
+
+/* EDGE CHECK */
+.check-row{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;box-shadow:var(--shadow);}
+.check-row .cn{font-size:13px;font-weight:600;}
+.check-row .cv{font-size:11.5px;color:var(--safe);font-weight:700;display:flex;align-items:center;gap:5px;}
+
+/* MAP */
+.instr-bar{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:#DCE4EE;color:#12212F;padding:8px 10px 9px;flex-shrink:0;border-bottom:1px solid #C6D2E0;}
+.instr-cell{text-align:center;border-right:1px solid rgba(0,0,0,0.1);}
+.instr-cell:last-child{border-right:none;}
+.instr-cell .lbl{font-size:9px;letter-spacing:0.5px;color:#546679;font-weight:700;}
+.instr-cell .val{font-size:18px;font-weight:800;margin-top:1px;}
+.instr-cell .unit{font-size:8.5px;color:#647689;}
+
+.map-viewport{position:relative;flex:1;overflow:hidden;background:var(--water);cursor:grab;}
+.map-viewport.grabbing{cursor:grabbing;}
+#mapSvg{position:absolute;top:0;left:0;display:block;user-select:none;}
+
+.layers-fab{position:absolute;left:10px;top:10px;background:rgba(255,255,255,0.96);border:1px solid var(--border);border-radius:9px;padding:7px;display:flex;flex-direction:column;gap:5px;z-index:5;box-shadow:var(--shadow);}
+.layer-toggle{display:flex;align-items:center;gap:7px;font-size:10px;padding:5px 7px;border-radius:6px;cursor:pointer;color:var(--text-dim);}
+.layer-toggle.on{color:var(--text);background:var(--accent-dim);}
+.layer-toggle .sw{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+
+.demo-note{position:absolute;left:10px;top:110px;background:rgba(255,255,255,0.96);border:1px dashed var(--accent);border-radius:8px;padding:7px 9px;font-size:9px;color:var(--accent);max-width:150px;line-height:1.4;z-index:5;}
+.overview-note{position:absolute;left:10px;bottom:14px;background:rgba(255,255,255,0.95);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--text-dim);z-index:5;max-width:235px;line-height:1.45;}
+.zone-label{font:700 10px Inter,sans-serif;fill:#24506a;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;}
+
+/* right detailed panel */
+.side-panel{position:absolute;right:0;top:0;bottom:0;width:220px;background:rgba(255,255,255,0.97);border-left:1px solid var(--border);overflow-y:auto;z-index:5;font-size:10px;}
+.sp-block{padding:8px 10px;border-bottom:1px solid var(--border-soft);}
+.sp-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px;}
+.sp-title{font-size:9px;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+.sp-val{font-size:13px;font-weight:800;color:var(--text);}
+.sp-sub{font-size:8.5px;color:var(--text-faint);}
+.sp-block.ais{background:#FFF8E8;}
+.sp-block.ais.danger-row{background:var(--danger-bg);}
+
+.panel-fab-stack{position:absolute;right:228px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:5;}
+.panel-fab{width:36px;height:36px;background:rgba(255,255,255,0.96);border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;box-shadow:var(--shadow);}
+
+.bell-fab{position:absolute;right:238px;bottom:14px;width:46px;height:46px;border-radius:50%;background:var(--danger);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;box-shadow:0 6px 18px rgba(220,38,38,0.4);z-index:6;display:none;}
+.bell-fab.show{display:flex;}
+.bell-fab .cnt{position:absolute;top:-4px;right:-4px;background:#fff;color:var(--danger);font-size:10px;font-weight:800;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+
+.datechip{position:absolute;left:10px;bottom:14px;background:rgba(255,255,255,0.94);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:9.5px;color:var(--text-dim);z-index:4;}
+
+.vinfo-card{position:absolute;left:10px;top:110px;width:230px;background:rgba(255,255,255,0.98);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9;display:none;}
+.vinfo-card.show{display:block;}
+.vinfo-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border-soft);}
+.vinfo-head b{font-size:12.5px;}
+.vinfo-body{padding:6px 12px 10px;}
+.vinfo-row{display:flex;justify-content:space-between;font-size:10.5px;padding:5px 0;border-bottom:1px solid var(--border-soft);}
+.vinfo-row span:first-child{color:var(--text-faint);}
+.vinfo-row span:last-child{font-weight:700;text-align:right;}
+.vinfo-board{width:100%;margin-top:8px;background:var(--accent-dim);color:var(--accent);border:none;padding:8px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;}
+
+.alert-card{position:absolute;left:0;right:228px;bottom:0;background:var(--panel);border-top:2px solid var(--danger);border-radius:16px 16px 0 0;padding:14px 18px 16px;transform:translateY(0);transition:transform 0.3s ease;box-shadow:0 -10px 30px rgba(0,0,0,0.15);z-index:8;max-width:520px;margin:0 auto;}
+.alert-card.hidden{transform:translateY(115%);}
+.alert-head{display:flex;align-items:center;justify-content:space-between;}
+.alert-level{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--danger);background:var(--danger-bg);padding:4px 10px;border-radius:20px;}
+.alert-close{color:var(--text-faint);cursor:pointer;padding:4px;}
+.alert-body{font-size:12.5px;margin-top:10px;line-height:1.5;color:var(--text);}
+.alert-body b{font-weight:800;}
+.alert-note{font-size:10px;color:var(--text-faint);margin-top:6px;}
+.alert-actions{display:flex;gap:8px;margin-top:12px;}
+.alert-actions button{flex:1;padding:9px;border-radius:8px;font-size:11.5px;font-weight:700;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;}
+.alert-actions button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+.sheet-overlay{position:absolute;inset:0;background:rgba(16,27,45,0.35);display:none;align-items:flex-end;justify-content:center;z-index:20;}
+.sheet-overlay.show{display:flex;}
+.sheet{width:100%;max-width:560px;max-height:86%;background:var(--panel);border-radius:18px 18px 0 0;border-top:1px solid var(--border);padding:16px 18px 20px;overflow-y:auto;}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:3px;margin:0 auto 12px;}
+.sheet-title{font-size:14.5px;font-weight:800;margin-bottom:2px;}
+.sheet-sub{font-size:11px;color:var(--text-dim);margin-bottom:14px;}
+.factor-row{margin-bottom:12px;}
+.factor-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
+.factor-head .fn{color:var(--text-dim);}
+.factor-head .fv{font-weight:700;}
+.factor-bar{height:6px;background:var(--border-soft);border-radius:4px;overflow:hidden;}
+.factor-fill{height:100%;border-radius:4px;}
+
+.ecg-box{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;}
+.ecg-head{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:6px;}
+.ecg-head b{font-weight:700;}
+.ecg-head .now{font-family:'Roboto Mono',monospace;font-weight:800;color:var(--accent);}
+
+.ukc-big{font-size:36px;font-weight:800;font-family:'Roboto Mono',monospace;}
+.ukc-status{font-size:12px;font-weight:700;margin-top:2px;}
+.ukc-break{margin-top:14px;}
+.ukc-break-row{display:flex;justify-content:space-between;font-size:12px;padding:8px 0;border-bottom:1px solid var(--border-soft);}
+.ukc-break-row .lbl{color:var(--text-dim);}
+.ukc-break-row .val{font-weight:700;}
+
+/* ALERT CENTER */
+.filter-row{display:flex;gap:6px;margin-bottom:14px;}
+.filter-chip{padding:6px 13px;border-radius:20px;border:1px solid var(--border);font-size:11px;color:var(--text-dim);cursor:pointer;background:var(--panel);}
+.filter-chip.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.alertlist-item{display:flex;gap:10px;padding:12px 13px;border:1px solid var(--border);border-radius:10px;margin-bottom:9px;background:var(--panel);cursor:pointer;box-shadow:var(--shadow);}
+.alertlist-item .dotcol{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.alertlist-item .body{flex:1;}
+.alertlist-item .t1{font-size:12.5px;font-weight:700;}
+.alertlist-item .t2{font-size:10.5px;color:var(--text-dim);margin-top:2px;}
+.status-pill{font-size:9.5px;font-weight:700;padding:2px 9px;border-radius:20px;height:fit-content;}
+
+/* WEATHER TAB */
+.wx-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px;}
+.wx-table th{text-align:left;font-size:9.5px;color:var(--text-faint);font-weight:700;text-transform:uppercase;padding:0 8px 8px;border-bottom:1px solid var(--border-soft);}
+.wx-table td{padding:10px 8px;border-bottom:1px solid var(--border-soft);color:var(--text-dim);}
+.wx-table td:first-child{color:var(--text);font-weight:700;}
+.wx-zone{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;font-family:'Inter',sans-serif;color:var(--text);}
+.wx-zone:hover{border-color:#A8C7FF;background:#F9FBFF;}.wx-zone .pin{width:34px;height:34px;border-radius:10px;background:var(--accent-dim);color:var(--accent);display:grid;place-items:center;font-size:16px;flex-shrink:0;}.wx-zone .zbody{flex:1;min-width:0;}.wx-zone .zname,.wx-zone .zmeta{display:block;}.wx-zone .zname{font-size:14px;font-weight:800;}.wx-zone .zmeta{font-size:11.5px;color:var(--text-dim);margin-top:4px;}.live-pill{font-size:10.5px;font-weight:700;padding:5px 9px;border-radius:14px;background:var(--safe-bg);color:var(--safe);white-space:nowrap;}.wx-back{display:flex;align-items:center;gap:10px;margin-bottom:16px;}.wx-back .iconbtn{width:38px;height:38px;}.wx-detail-title{font-size:18px;font-weight:800;}.wx-live-card{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin:10px 0;}.wx-live-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;}.wx-live-value{font-family:'Roboto Mono',monospace;color:var(--accent);font-size:15px;font-weight:800;}.wx-live-card svg{display:block;width:100%;height:auto;margin-top:8px;overflow:visible;touch-action:none;cursor:crosshair;}.wx-chart-grid{stroke:#DCE6F2;stroke-width:1;}.wx-chart-axis{stroke:#9DB0C6;stroke-width:1.1;}.wx-chart-label{fill:#71839A;font:8px 'Roboto Mono',monospace;}.wx-chart-line{fill:none;stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round;}.wx-chart-dot{stroke:#fff;stroke-width:1.5;}.wx-chart-tooltip rect{fill:#12212F;opacity:.94;}.wx-chart-tooltip text{fill:#fff;font:9px 'Roboto Mono',monospace;}.wx-sensor{font-size:10.5px;color:var(--text-dim);margin:6px 0 14px;}
+.wx-date-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px;}.wx-date{border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text-dim);padding:8px 11px;font:600 11px 'Inter',sans-serif;cursor:pointer;}.wx-date.active{background:var(--accent);color:#fff;border-color:var(--accent);}.slot-note{font-size:11px;color:var(--text-dim);line-height:1.45;margin-top:3px;}
+
+/* ACCOUNT */
+.profile-card{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:18px;box-shadow:var(--shadow);}
+.avatar{width:50px;height:50px;border-radius:50%;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:var(--accent);flex-shrink:0;}
+.profile-name{font-size:15px;font-weight:800;}
+.profile-sub{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+.profile-meta{display:flex;gap:16px;margin-top:7px;font-size:10.5px;color:var(--text-faint);}
+
+.fb-item{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 13px;margin-bottom:11px;box-shadow:var(--shadow);}
+.fb-item .ft{font-size:12px;margin-bottom:9px;line-height:1.5;}
+.fb-item .ft b{color:var(--text-dim);font-weight:700;}
+.fb-choices{display:flex;gap:6px;}
+.fb-choice{flex:1;text-align:center;padding:7px 4px;border-radius:8px;border:1px solid var(--border);font-size:10.5px;color:var(--text-dim);cursor:pointer;background:var(--panel);}
+.fb-choice.sel{border-color:var(--accent);color:#fff;background:var(--accent);}
+</style>
+<style>body{padding:0;background:#f5f8fc}.ipad{width:100vw;height:100vh;padding:0;border-radius:0;box-shadow:none}.sidenav,.devstatus,#screen-map .appbar{display:none!important}.screen-frame{border-radius:0}</style><style>body,button,input,textarea,select,.alert-body,.alert-body b,.alert-body strong,.alert-actions button,.sheet,.vinfo-card{font-family:Arial,Arial,sans-serif!important}svg text{font-family:Arial,Arial,sans-serif!important}.alert-body{line-height:1.7;font-size:12px}.alert-body b{font-weight:700}.sheet-overlay{position:fixed!important;z-index:50!important}.sheet{max-height:88vh;overflow-y:auto}.vinfo-card{z-index:40;max-height:70vh;overflow:auto}.alert-card.hidden{pointer-events:none}.alert-card:not(.hidden){pointer-events:auto}.alert-actions button:focus-visible{outline:3px solid #7cc5ff;outline-offset:2px}</style><style>#mapSvg{transform-origin:0 0}.map-viewport{touch-action:none}.map-navigation{position:absolute;left:12px;top:132px;z-index:8;display:flex;flex-direction:column;gap:6px}.map-navigation button{font:12px Arial,Arial;background:#fff;border:1px solid #ccd9e7;border-radius:8px;padding:9px 11px;min-width:42px;min-height:40px;color:#294d68;box-shadow:0 2px 7px #18344915;cursor:pointer}.map-navigation button:focus-visible{outline:3px solid #7cc5ff}.map-zoom-label{background:#ffffffeb;text-align:center;border-radius:4px;font-size:10px;padding:4px;color:#56728b}.map-targets{position:absolute;left:88px;top:132px;z-index:9;width:260px;max-width:calc(100% - 110px);max-height:65%;background:#fff;border:1px solid #d8e3f2;border-radius:10px;padding:12px;box-shadow:0 5px 20px #18344925;overflow:auto}.map-targets[hidden]{display:none}.map-targets input{width:100%;padding:10px;border:1px solid #d8e3f2;border-radius:6px;margin:8px 0}.map-targets button{display:block;width:100%;padding:10px;text-align:left;background:white;border:0;border-bottom:1px solid #edf1f6;color:#294d68;cursor:pointer}.map-targets small{display:block;margin-top:4px;color:#778ca3}.map-targets h3{font-size:12px}.map-demo-tag{position:absolute;left:12px;bottom:38px;background:#fffffff0;border:1px solid #d8e3f2;border-radius:6px;padding:6px 9px;font-size:10px;z-index:6;pointer-events:none}@media(max-width:650px){.side-panel{width:160px}.panel-fab-stack{right:168px}.map-navigation{top:122px;left:8px}.map-navigation button{font-size:10px;padding:8px;min-height:36px}.map-targets{left:64px;top:122px;width:230px}.map-demo-tag{font-size:8px;max-width:calc(100% - 175px)}} </style><style>.map-dark{--bg:#111e2b;--bg-2:#162b3b;--panel:#1a2e40;--panel-2:#213b50;--border:#355064;--border-soft:#2b4559;--text:#e2edf6;--text-dim:#b1c5d5;--text-faint:#98b1c6;color:var(--text);color-scheme:dark}.map-dark .side-panel,.map-dark .panel-fab,.map-dark .layers-fab,.map-dark .datechip,.map-dark .map-navigation button,.map-dark .map-targets,.map-dark .map-targets button,.map-dark .map-zoom-label,.map-dark .map-demo-tag{background:#1a2e40;color:#e2edf6;border-color:#355064}.map-dark .sp-val{color:#e2edf6!important}.map-dark .sp-title,.map-dark .sp-sub,.map-dark .map-targets small{color:#a9bfd0!important}.map-dark .sp-block.ais{background:#333426}.map-dark .instr-bar,.map-dark .navdata,.map-dark .nav-strip{background:#1a2e40;color:#e2edf6}.map-dark .instr-cell .lbl,.map-dark .instr-cell .unit{color:#a9bfd0}.map-dark .layers-fab button{color:#294d68}.map-dark .layers-fab span,.map-dark .layer-toggle{color:#203e58}</style><style>.map-navigation{display:grid;grid-template-columns:1fr 1fr;width:140px;max-height:calc(100% - 155px);overflow:auto;scrollbar-width:thin;gap:5px}.map-navigation button{min-width:0;padding:8px 5px;font-size:10px;min-height:36px}.map-zoom-label{grid-column:1/-1}.map-targets{left:164px}.map-wide .panel-fab-stack{right:10px}.scenario-panel{position:absolute;left:164px;top:132px;z-index:12;width:290px;max-width:calc(100% - 180px);max-height:calc(100% - 150px);overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:0 8px 25px #1234}.scenario-panel[hidden]{display:none}.scenario-panel select,.scenario-panel button{padding:9px;margin:8px 0 0;font:11px Arial;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text)}.scenario-panel select{width:100%}.scenario-panel p{font-size:10px;line-height:1.7;margin-top:9px}.scenario-panel .scenario-actions{display:flex;gap:6px;flex-wrap:wrap}.scenario-panel .scenario-actions button{flex:1}.scenario-banner{position:absolute;left:170px;right:235px;top:10px;background:#fff1d9;color:#795317;padding:9px;border:1px solid #d8bc80;border-radius:6px;font-size:10px;z-index:7;pointer-events:none}.scenario-banner:empty{display:none}.map-wide .scenario-banner{right:60px}.replay-mode #ownShip{pointer-events:none}.replay-mode #mapPause,.replay-mode #mapScenarios,.replay-mode .panel-fab-stack{display:none}.replay-mode .map-demo-tag{background:#e3f2ff;color:#245275}@media(max-width:650px){.map-navigation{width:104px;top:118px;max-height:calc(100% - 135px)}.map-navigation button{font-size:8px;min-height:33px}.map-targets,.scenario-panel{left:120px;max-width:calc(100% - 130px)}.scenario-banner{left:120px;right:170px;font-size:8px}}</style><style>
+body,button,input,select,textarea,svg text{font-family:Arial,Helvetica,sans-serif!important}.map-tools{position:absolute;left:12px;top:12px;z-index:15;max-width:calc(100% - 24px)}.map-tools>summary{list-style:none;cursor:pointer;border:1px solid #ccd9e7;border-radius:9px;padding:12px 16px;background:white;color:#294d68;box-shadow:0 3px 12px #18344920;font:600 14px Arial;display:flex;align-items:center;gap:18px;min-height:44px}.map-tools>summary::-webkit-details-marker{display:none}.map-tools>summary:focus-visible{outline:3px solid #7cc5ff}.map-tools[open]>summary{border-radius:9px 9px 0 0}.map-tools .map-navigation{position:static;display:grid;grid-template-columns:repeat(3,1fr);width:280px;max-width:100%;max-height:65vh;overflow:auto;background:var(--panel);border:1px solid var(--border);border-top:0;border-radius:0 0 9px 9px;padding:9px;gap:6px;box-shadow:0 5px 14px #18344920}.map-tools .map-navigation button{font:13px Arial;min-height:44px}.map-tools .map-zoom-label{grid-column:auto;display:grid;place-items:center;font-size:12px}.map-targets,.scenario-panel{left:12px;top:66px;max-width:calc(100% - 24px)}.map-dark .map-tools>summary{background:#1a2e40;color:#e2edf6;border-color:#355064}.map-dark .map-tools .map-navigation{background:#1a2e40}.map-demo-tag{font-size:11px}.sp-title,.sp-sub{font-size:12px}
+</style><style>@font-face{font-family:'PACS Sans';src:url('/fonts/pacs-sans-regular.woff') format('woff');font-weight:400 500;font-display:swap}@font-face{font-family:'PACS Sans';src:url('/fonts/pacs-sans-bold.woff') format('woff');font-weight:600 900;font-display:swap}body,button,input,select,textarea,svg text{font-family:'PACS Sans',Arial,sans-serif!important}.map-tools>summary,.map-tools .map-navigation button{font-family:'PACS Sans',Arial,sans-serif!important}</style><style>
+.map-viewport .map-tools{z-index:32;touch-action:manipulation}.map-tools summary,.map-tools button{touch-action:manipulation}.map-targets,.scenario-panel{left:12px;top:66px;z-index:31;max-height:calc(100% - 160px);max-width:calc(100% - 250px);width:310px}.map-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.map-drawer-head button{margin:0;min-width:36px;min-height:36px;font-size:22px}.scenario-banner{left:12px;right:240px;top:70px;z-index:16;max-width:460px}.map-wide .scenario-banner{right:65px}.scenario-panel:not([hidden])~.scenario-banner{display:none}.alert-card{z-index:35;max-height:45%;overflow:auto}.alert-title{font-size:13px;font-weight:700;margin:8px 0}.alert-actions{flex-wrap:wrap}.vinfo-card{left:12px;top:70px;max-height:calc(100% - 180px)}.map-tools[open]~.scenario-banner{visibility:hidden}@media(max-width:650px){.map-targets,.scenario-panel{max-width:calc(100% - 24px);width:290px;max-height:55%}.scenario-banner{right:175px;top:72px;font-size:11px}.alert-card{right:0;max-width:100%;max-height:42%}.alert-actions button{font-size:11px;min-height:40px}.map-tools>summary{padding:10px 12px;font-size:13px}}
+</style><style>.map-viewport{touch-action:auto}#mapSvg{touch-action:none}.map-tools,.map-targets,.scenario-panel,.side-panel{touch-action:pan-y}.map-tools>summary,.map-tools button{touch-action:manipulation}</style><style>.alert-pace{font-size:10px;color:var(--text-dim);padding:7px 0}.scenario-auto{display:flex;gap:8px;align-items:center;font-size:12px;margin:14px 0 8px}.scenario-auto input{width:18px;height:18px;accent-color:#2563eb}.scenario-panel small{display:block;font-size:10px;line-height:1.6}</style><style>
+html body,html body #appShell,html body #appShell *,html body .sheet,html body .sheet *{font-family:'PACS Sans',Arial,sans-serif!important}
+#screen-login{display:none!important}
+.map-tools .layers-fab{position:static;grid-column:1/-1;display:flex;flex-direction:row;flex-wrap:wrap;gap:10px;box-shadow:none;border:0;border-top:1px solid var(--border);border-radius:0;padding:12px 2px 2px;background:var(--panel)}
+.map-tools .layer-toggle{min-height:32px;display:flex;align-items:center;gap:6px;font-size:12px}
+.scenario-banner{top:76px;line-height:1.5}.sheet-title{line-height:1.5}.rec-card .rt{line-height:1.7}
+</style><style>.advice-context{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:10px}.advice-action{font-size:14px;font-weight:700;line-height:1.7;padding-left:10px;border-left:3px solid var(--accent)}.advice-step{font-size:13px;line-height:1.7;margin-top:10px}.alert-body,.rec-card .rt{white-space:normal}.rec-card{padding:16px}.rec-card .rl{margin-bottom:12px}</style></head>
+<body>
+
+<div class="ipad"><div class="screen-frame">
+
+  <div class="devstatus">
+    <div class="left"><span><span class="dot on"></span>Jetson</span><span><span class="dot on"></span>Cloud</span><span>Env. cập nhật: 2 phút</span></div>
+    <div class="time mono" id="topClock">10:32</div>
+  </div>
+
+  <div id="screen-login" hidden style="display:none!important"></div>
+
+  <div class="app-shell hidden" id="appShell">
+    <div class="sidenav">
+      <div class="navitem active" data-target="screen-home" onclick="navTo(this,'screen-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Trang chủ</span></div>
+      <div class="navitem" data-target="screen-timetable" onclick="navTo(this,'screen-timetable')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Lịch trình</span></div>
+      <div class="navitem" data-target="screen-map" onclick="navTo(this,'screen-map')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/></svg><span>Bản đồ</span></div>
+      <div class="navitem" data-target="screen-weather" onclick="navTo(this,'screen-weather')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9.6 4.6A2 2 0 1 1 11 8H2M12.6 19.4A2 2 0 1 0 14 16H2M17.6 7.6A2 2 0 1 1 19 11H2"/></svg><span>Thời tiết</span></div>
+      <div class="navitem" data-target="screen-alerts" onclick="navTo(this,'screen-alerts')" style="position:relative;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span>Cảnh báo</span><span class="navbadge" id="navAlertBadge">1</span></div>
+      <div class="navitem" data-target="screen-account" onclick="navTo(this,'screen-account')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg><span>Tài khoản</span></div>
+    </div>
+
+    <div class="main">
+
+      <!-- HOME -->
+      <div class="screen-panel" id="screen-home">
+        <div class="appbar"><div><div class="title">Phân công từ điều phối</div><div class="sub">Nguyễn Quyết Thắng - Hoa tiêu hạng Nhất</div></div></div>
+        <div class="content">
+          <div class="board-banner" id="boardBanner" style="display:none;">
+            <div><div class="bt">Đã đến giờ lên tàu - APOLLO STAR</div><div class="bs">Vui lòng kiểm tra thiết bị trước khi bắt đầu dẫn tàu</div></div>
+            <button class="btn-primary" onclick="startBoarding('apollo')">Lên tàu</button>
+          </div>
+
+          <div class="section-label">Hôm nay - 17/10/2026</div>
+
+          <div class="voy-card" style="opacity:0.6;" onclick="openPlanning('vietsun0')">
+            <div class="row1"><div><div class="vname">HOANG NAM 06</div><div class="vroute">Phao số 0 - Cảng Interflour, Cái Mép</div></div><span class="badge safe">Hoàn tất</span></div>
+            <div class="voy-meta"><div>Draft <b>9.2 m</b></div><div>LOA <b>168 m</b></div><div>Loại <b>Hàng rời</b></div></div>
+            <div class="slot-line">Khung giờ đã dẫn: <b>06:10 - 06:55</b></div>
+          </div>
+
+          <div class="voy-card" onclick="openPlanning('vietsun')">
+            <div class="row1"><div><div class="vname">VIETSUN CONFIDENT</div><div class="vroute">Phao số 0 - Cảng Gemalink, Cái Mép</div></div><span class="badge warn" id="statusBadge-vietsun">Chờ đánh giá</span></div>
+            <div class="voy-meta"><div>Draft <b>13.4 m</b></div><div>LOA <b>299 m</b></div><div>Loại <b>Tàu container</b></div></div>
+            <div class="slot-line" id="slotLine-vietsun">Khung giờ được phân công: <b>13:40 - 14:20</b></div>
+          </div>
+
+          <div class="voy-card" onclick="openPlanning('apollo')">
+            <div class="row1"><div><div class="vname">APOLLO STAR</div><div class="vroute">Cảng Tân Cảng Cái Mép - Phao số 0</div></div><span class="badge warn" id="statusBadge-apollo">Chờ đánh giá</span></div>
+            <div class="voy-meta"><div>Draft <b>10.1 m</b></div><div>LOA <b>210 m</b></div><div>Loại <b>Tàu hàng rời</b></div></div>
+            <div class="slot-line" id="slotLine-apollo">Khung giờ được phân công: <b>19:50 - 20:30</b></div>
+          </div>
+
+          <div class="voy-card" onclick="openPlanning('thanhdat')">
+            <div class="row1"><div><div class="vname">THANH DAT 86</div><div class="vroute">Phao số 0 - Cảng CMIT, Cái Mép</div></div><span class="badge warn" id="statusBadge-thanhdat">Chờ đánh giá</span></div>
+            <div class="voy-meta"><div>Draft <b>11.8 m</b></div><div>LOA <b>230 m</b></div><div>Loại <b>Tàu container</b></div></div>
+            <div class="slot-line" id="slotLine-thanhdat">Khung giờ được phân công: <b>22:15 - 22:55</b></div>
+          </div>
+
+          <div class="voy-card" onclick="openPlanning('viet_thuan')">
+            <div class="row1"><div><div class="vname">VIET THUAN 10-03</div><div class="vroute">Cảng CL Civility - Phao số 0</div></div><span class="badge warn" id="statusBadge-viet_thuan">Chờ đánh giá</span></div>
+            <div class="voy-meta"><div>Draft <b>8.6 m</b></div><div>LOA <b>142 m</b></div><div>Loại <b>Hàng rời</b></div></div>
+            <div class="slot-line" id="slotLine-viet_thuan">Khung giờ được phân công: <b>02:30 - 03:10</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLANNING -->
+      <div class="screen-panel" id="screen-planning" style="display:none;">
+        <div class="appbar">
+          <div class="iconbtn" onclick="showPanel('screen-home')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+          <div><div class="title" id="pl-name">VIETSUN CONFIDENT</div><div class="sub">Khuyến nghị lập kế hoạch</div></div>
+        </div>
+        <div class="content">
+          <div class="info-grid" id="pl-info"></div>
+          <div class="allocated-box"><div><div class="k">Khung giờ được phân công</div><div class="v" id="pl-slot">13:40 - 14:20</div></div><span class="badge" id="pl-slot-badge">Chờ đánh giá</span></div>
+
+          <div class="section-label">Dự báo điều kiện chung trong ngày</div>
+          <table class="fc-table" id="pl-table"></table>
+
+          <div class="chart-box">
+            <div class="chart-title">Dự báo UKC chi tiết - kéo đồ thị để xem theo giờ</div>
+            <div class="chart-sub">24 giờ tới, vùng xanh là khung giờ an toàn</div>
+            <div class="scrub-readout" id="scrubReadout">Giờ 09:00 - UKC dự báo 1.5 m</div>
+            <svg viewBox="0 0 320 130" width="100%" height="130" id="ukcChart" style="touch-action:none;cursor:ew-resize;">
+              <rect x="0" y="0" width="105" height="130" fill="rgba(22,163,74,0.08)"/>
+              <rect x="105" y="0" width="70" height="130" fill="rgba(217,119,6,0.08)"/>
+              <rect x="175" y="0" width="145" height="130" fill="rgba(22,163,74,0.08)"/>
+              <line x1="0" y1="40" x2="320" y2="40" stroke="var(--border-soft)" stroke-width="1"/>
+              <line x1="0" y1="80" x2="320" y2="80" stroke="var(--border-soft)" stroke-width="1"/>
+              <polyline id="ukcLine" fill="none" stroke="#2563EB" stroke-width="2.5" points=""/>
+              <line id="scrubLine" x1="120" y1="6" x2="120" y2="124" stroke="var(--danger)" stroke-width="2"/>
+              <circle id="scrubDot" cx="120" cy="60" r="6" fill="var(--danger)" stroke="#fff" stroke-width="1.5"/>
+              <text x="4" y="14" fill="var(--text-faint)" font-size="8">UKC (m)</text>
+              <text x="4" y="126" fill="var(--text-faint)" font-size="8">00h</text>
+              <text x="150" y="126" fill="var(--text-faint)" font-size="8">10h</text>
+              <text x="296" y="126" fill="var(--text-faint)" font-size="8">24h</text>
+            </svg>
+          </div>
+
+          <div class="rec-card" id="pl-rec">
+            <div class="rl" id="pl-rec-label">Khuyến nghị</div>
+            <div class="rt" id="pl-rec-text"></div>
+            <div class="alt-time" id="pl-alt-time" style="display:none;"></div>
+            <div class="rec-actions" id="pl-rec-actions"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMETABLE -->
+      <div class="screen-panel" id="screen-timetable" style="display:none;">
+        <div class="appbar"><div><div class="title">Lịch trình trong ngày</div><div class="sub">Nguyễn Quyết Thắng - 17/10/2026</div></div></div>
+        <div class="content" id="ttList"></div>
+      </div>
+
+      <!-- EDGE COMPUTING CHECK -->
+      <div class="screen-panel" id="screen-edgecheck" style="display:none;">
+        <div class="appbar"><div><div class="title">Kiểm tra thiết bị trước khi lên tàu</div><div class="sub" id="ec-voyname">APOLLO STAR</div></div></div>
+        <div class="content">
+          <div class="section-label">Trạng thái thiết bị xử lý biên (Edge Computing)</div>
+          <div class="check-row"><span class="cn">Kết nối thiết bị Jetson</span><span class="cv" id="ck1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Đang kiểm tra...</span></div>
+          <div class="check-row"><span class="cn">Định vị GPS</span><span class="cv" id="ck2"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Đang kiểm tra...</span></div>
+          <div class="check-row"><span class="cn">Tín hiệu AIS</span><span class="cv" id="ck3"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Đang kiểm tra...</span></div>
+          <div class="check-row"><span class="cn">Dữ liệu offline đã đồng bộ</span><span class="cv" id="ck4"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Đang kiểm tra...</span></div>
+          <div class="check-row"><span class="cn">Pin thiết bị</span><span class="cv" id="ck5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Đang kiểm tra...</span></div>
+          <button class="btn-primary full" id="ecContinueBtn" style="margin-top:16px;opacity:0.4;pointer-events:none;" onclick="goMap()">Thiết bị đã sẵn sàng - Vào bản đồ dẫn tàu</button>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="screen-panel" id="screen-map" style="display:none;flex:1;flex-direction:column;">
+        <div class="instr-bar mono">
+          <div class="instr-cell"><div class="lbl">ROT</div><div class="val" id="rotValue">0.0°</div><div class="unit" id="rotUnit">Ổn định</div></div>
+          <div class="instr-cell"><div class="lbl">HDG</div><div class="val" id="hdgValue">--.-°</div><div class="unit">True</div></div>
+          <div class="instr-cell"><div class="lbl">COG</div><div class="val" id="cogValue">--.-°</div><div class="unit">True</div></div>
+          <div class="instr-cell"><div class="lbl">SOG</div><div class="val" id="sogValue">7.2</div><div class="unit">Knots</div></div>
+        </div>
+
+        <div class="map-viewport" id="mapViewport"><details class="map-tools" id="mapTools"><summary>Công cụ bản đồ <span>☰</span></summary><div class="map-navigation" aria-label="Điều khiển bản đồ"><button id="mapZoomIn" title="Phóng to" aria-label="Phóng to">＋</button><span class="map-zoom-label" id="mapZoomLabel">100%</span><button id="mapZoomOut" title="Thu nhỏ" aria-label="Thu nhỏ">−</button><button id="mapFit" title="Xem toàn luồng">Toàn luồng</button><button id="mapCenter" title="Về tàu của tôi">Về tàu</button><button id="mapPause" aria-pressed="false">Tạm dừng</button><button id="mapLabels" aria-pressed="true">Ẩn tên tàu</button><button id="mapTargets">Tàu · 18</button><button id="mapDetails">Ẩn thông số</button><button id="mapScenarios">Tình huống</button>          <div class="layers-fab">
+            <div class="layer-toggle on" data-layer="layerCollision" onclick="toggleLayer(this)"><span class="sw" style="background:var(--danger);"></span>Va chạm</div>
+            <div class="layer-toggle on" data-layer="layerUKC" onclick="toggleLayer(this)"><span class="sw" style="background:#DC2626;"></span>UKC</div>
+            <div class="layer-toggle on" data-layer="layerEnv" onclick="toggleLayer(this)"><span class="sw" style="background:#2563EB;"></span>Môi trường</div>
+          </div></div></details><div class="scenario-banner" id="scenarioBanner"></div><section class="scenario-panel" id="scenarioPanel" hidden><div class="map-drawer-head"><h3>Tình huống</h3><button type="button" data-close="scenarioPanel" aria-label="Đóng tình huống">×</button></div><select id="scenarioChoice" aria-label="Chọn tình huống"><option value="crossing">Tàu cắt ngang</option><option value="wind">Gió giật tăng</option><option value="crosswind">Gió ngang khi đón</option><option value="current">Dòng ngang tăng</option><option value="visibility">Tầm nhìn giảm</option><option value="overtaking">Tàu phía sau vượt lên</option><option value="combined">Gió giật + tàu cắt ngang</option><option value="ukc">Mực nước giảm / UKC hạn chế</option><option value="ais">AIS gián đoạn</option></select><label class="scenario-auto"><input type="checkbox" id="scenarioAuto" checked/>Chuỗi tình huống tự động</label><small>Gió → dòng ngang → tầm nhìn → UKC → AIS, cách nhau 90 giây.</small><div class="scenario-actions"><button id="scenarioRun">Chạy</button><button id="scenarioStop">Dừng</button><button id="scenarioReset">Đặt lại</button></div><p>Thử phản ứng PACS trên bản đồ. Các mốc tình huống được lưu cùng chuyến đang dẫn tàu.</p></section><section class="map-targets" id="mapTargetPanel" hidden><div class="map-drawer-head"><h3>Mục tiêu</h3><button type="button" data-close="mapTargetPanel" aria-label="Đóng danh sách tàu">×</button></div><input id="mapTargetSearch" type="search" aria-label="Tìm tàu trên bản đồ" placeholder="Tìm tên tàu…"><div id="mapTargetList"></div></section><div class="map-demo-tag">18 tàu · Cuộn / chụm để zoom · Kéo tàu để thử</div>
+          <svg id="mapSvg" width="2000" height="3800"></svg>
+          <div class="overview-note" id="overviewNote"><b>Bản đồ tổng quan</b><br>Chưa lên tàu: xem hải đồ, luồng, phao và điều kiện khu vực. Vùng an toàn quanh tàu sẽ chỉ xuất hiện khi bắt đầu dẫn tàu.</div>
+
+
+
+          <div class="panel-fab-stack">
+            <div class="panel-fab" onclick="openEnv()" title="Environmental Panel"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2 8 4-16 2 8h6"/></svg></div>
+            <div class="panel-fab" onclick="openUkcPanel()" title="UKC Panel"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg></div>
+            <div class="panel-fab" onclick="openRiskCard()" title="Bức tranh rủi ro tổng hợp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg></div>
+          </div>
+
+          <div class="side-panel" id="sidePanel"></div>
+
+          <div class="vinfo-card" id="vinfoCard">
+            <div class="vinfo-head"><b id="vinfoName">VIETSUN CONFIDENT</b><span class="alert-close" onclick="closeVinfo()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+            <div class="vinfo-body" id="vinfoBody"></div>
+          </div>
+
+          <div class="datechip mono" id="mapDatechip">17/10/2026 &nbsp;10:32:07 &nbsp;</div>
+
+          <div class="bell-fab" id="bellFab" onclick="reopenAlert()"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a2.4 2.4 0 0 0 2.4-2.4H9.6A2.4 2.4 0 0 0 12 22zm7.2-6v-5.4a7.2 7.2 0 0 0-5.4-7v-.8a1.8 1.8 0 1 0-3.6 0v.8a7.2 7.2 0 0 0-5.4 7V16l-1.8 1.8v.9h18v-.9z"/></svg><span class="cnt" id="bellCount">0</span></div>
+
+          <div class="alert-card hidden" id="alertCard">
+            <div class="alert-head"><span class="alert-level"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 21h20L12 2z"/></svg>Nguy hiểm cao</span><span class="alert-close" onclick="minimizeAlert()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+            <div class="alert-body">Tàu <b>JOSCO JANE</b> cách <b><span id="alertCpa">0.24</span> NM</b>, dự kiến giao cắt trong <b><span id="alertTcpa">04:50</span></b> tại khu vực khúc cong hẹp. Đồng thời gió đang tăng lên <b>cấp 6</b> tại vị trí này.</div>
+            <div class="alert-pace" id="alertPace" aria-live="off"></div><div class="alert-actions"><button onclick="openConflictSelected()">Xem chi tiết tàu</button><button onclick="ackAlert()">Xác nhận đã biết</button><button class="primary" onclick="openRiskCard()">Xem khuyến nghị</button></div>
+          </div>
+        </div>
+
+        <div class="sheet-overlay" id="envSheet">
+          <div class="sheet"><div class="sheet-handle"></div>
+            <div class="sheet-title">Environmental Panel</div>
+            <div class="sheet-sub">Theo dõi thời gian thực</div>
+            <div class="ecg-box"><div class="ecg-head"><b>Gió (hải lý/giờ)</b><span class="now" id="ecgWindNow">13.2</span></div><svg viewBox="0 0 300 50" width="100%" height="50"><polyline id="ecgWind" fill="none" stroke="#2563EB" stroke-width="1.8" points=""/></svg></div>
+            <div class="ecg-box"><div class="ecg-head"><b>Dòng chảy (hải lý/giờ)</b><span class="now" id="ecgCurrentNow">1.3</span></div><svg viewBox="0 0 300 50" width="100%" height="50"><polyline id="ecgCurrent" fill="none" stroke="#16A34A" stroke-width="1.8" points=""/></svg></div>
+            <div class="ecg-box"><div class="ecg-head"><b>Mực nước (m)</b><span class="now" id="ecgWaterNow">2.5</span></div><svg viewBox="0 0 300 50" width="100%" height="50"><polyline id="ecgWater" fill="none" stroke="#D97706" stroke-width="1.8" points=""/></svg></div>
+            <button class="btn-secondary" style="width:100%;" onclick="closeSheet('envSheet')">Đóng</button>
+          </div>
+        </div>
+
+        <div class="sheet-overlay" id="ukcSheet">
+          <div class="sheet"><div class="sheet-handle"></div>
+            <div class="sheet-title">UKC trong chuyến</div>
+            <div class="ukc-big" style="color:var(--warn);">1.6 m</div>
+            <div class="ukc-status" style="color:var(--warn);">Cần thận trọng</div>
+            <div class="ukc-speed" style="font-size:12px;margin:10px 0;color:var(--text-muted)"></div><div class="ukc-break">
+              <div class="ukc-break-row"><span class="lbl">Độ sâu tại vị trí</span><span class="val">15.0 m</span></div>
+              <div class="ukc-break-row"><span class="lbl">Mực nước triều</span><span class="val">+2.5 m</span></div>
+              <div class="ukc-break-row"><span class="lbl">Mớn nước tàu</span><span class="val">-13.4 m</span></div>
+              <div class="ukc-break-row"><span class="lbl">Squat ước tính</span><span class="val">-2.2 m</span></div>
+              <div class="ukc-break-row"><span class="lbl">Dự phòng an toàn</span><span class="val">-0.3 m</span></div>
+            </div>
+            <button class="btn-secondary" style="margin-top:16px;width:100%;" onclick="closeSheet('ukcSheet')">Đóng</button>
+          </div>
+        </div>
+
+        <div class="sheet-overlay" id="riskSheet">
+          <div class="sheet"><div class="sheet-handle"></div>
+            <div class="sheet-title">Bức tranh rủi ro tổng hợp</div>
+            <div class="sheet-sub">Cập nhật vừa xong</div>
+            <div class="factor-row"><div class="factor-head"><span class="fn">Nguy cơ va chạm</span><span class="fv" style="color:var(--danger);">Cao</span></div><div class="factor-bar"><div class="factor-fill" style="width:85%;background:var(--danger);"></div></div></div>
+            <div class="factor-row"><div class="factor-head"><span class="fn">Điều kiện gió</span><span class="fv" style="color:var(--warn);">Chú ý</span></div><div class="factor-bar"><div class="factor-fill" style="width:60%;background:var(--warn);"></div></div></div>
+            <div class="factor-row"><div class="factor-head"><span class="fn">UKC</span><span class="fv" style="color:var(--warn);">1.6 m</span></div><div class="factor-bar"><div class="factor-fill" style="width:45%;background:var(--warn);"></div></div></div>
+            <div class="factor-row"><div class="factor-head"><span class="fn">Dòng chảy</span><span class="fv" style="color:var(--safe);">Ổn định</span></div><div class="factor-bar"><div class="factor-fill" style="width:20%;background:var(--safe);"></div></div></div>
+            <div class="rec-card danger" style="margin-top:16px;"><div class="rl">Khuyến nghị hành động</div><div class="rt">Chọn một cảnh báo để xem khuyến nghị theo tình huống.</div></div>
+            <div style="display:flex;gap:10px;margin-top:14px;"><button class="btn-secondary" style="flex:1;" onclick="closeSheet('riskSheet')">Đóng</button><button class="btn-primary" style="flex:1;" onclick="resolveAlert()">Đánh dấu đã xử lý</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEATHER TAB -->
+      <div class="screen-panel" id="screen-weather" style="display:none;">
+        <div class="appbar"><div><div class="title">Thời tiết khu vực</div><div class="sub">Tổng quan chung - Vũng Tàu, Cái Mép, Thị Vải</div></div></div>
+        <div class="content">
+          <div id="weatherList"><div class="section-label">Chọn ngày để xem dự báo, hoặc chọn khu vực để xem dữ liệu trực tiếp</div><div class="wx-date-row"><button class="wx-date" onclick="selectWeatherDay('20/08',this)">20/08</button><button class="wx-date active" onclick="selectWeatherDay('21/08',this)">Hôm nay - 21/08</button><button class="wx-date" onclick="selectWeatherDay('22/08',this)">22/08</button></div>
+            <table class="wx-table" id="wxForecastTable"></table>
+            <div class="section-label" style="margin-top:6px;">Khu vực - dữ liệu trực tiếp</div>
+            <button class="wx-zone" onclick="openWeatherZone('Phao số 0')"><span class="pin">⌖</span><span class="zbody"><span class="zname">Phao số 0</span><span class="zmeta">Gió 14 kn · Dòng 1.5 kn · Mực nước 2.6 m</span></span><span class="live-pill">Xem trực tiếp</span></button>
+            <button class="wx-zone" onclick="openWeatherZone('Gành Rái')"><span class="pin">⌖</span><span class="zbody"><span class="zname">Gành Rái</span><span class="zmeta">Gió 22 kn · Dòng 1.7 kn · Mực nước 2.5 m</span></span><span class="live-pill">Xem trực tiếp</span></button>
+            <button class="wx-zone" onclick="openWeatherZone('Cái Mép')"><span class="pin">⌖</span><span class="zbody"><span class="zname">Cái Mép</span><span class="zmeta">Gió 12 kn · Dòng 1.3 kn · Mực nước 2.4 m</span></span><span class="live-pill">Xem trực tiếp</span></button>
+            <button class="wx-zone" onclick="openWeatherZone('Sông Thị Vải')"><span class="pin">⌖</span><span class="zbody"><span class="zname">Sông Thị Vải</span><span class="zmeta">Gió 10 kn · Dòng 1.1 kn · Mực nước 2.2 m</span></span><span class="live-pill">Xem trực tiếp</span></button>
+            <button class="wx-zone" onclick="openWeatherZone('Vũng Tàu')"><span class="pin">⌖</span><span class="zbody"><span class="zname">Vũng Tàu</span><span class="zmeta">Gió 15 kn · Dòng 1.6 kn · Mực nước 2.6 m</span></span><span class="live-pill">Xem trực tiếp</span></button></div>
+          <div id="weatherDetail" style="display:none;"><div class="wx-back"><button class="iconbtn" onclick="closeWeatherZone()">‹</button><div><div class="wx-detail-title" id="wxZoneTitle">Phao số 0</div><div class="sub">Cập nhật cảm biến theo thời gian thực</div></div></div><div class="wx-live-card"><div class="wx-live-head"><span>Gió (hải lý/giờ)</span><span class="wx-live-value" id="wxWindNow">14.0</span></div><svg id="wxWind" viewBox="0 0 320 145" role="img" aria-label="Biểu đồ gió theo thời gian"></svg></div><div class="wx-live-card"><div class="wx-live-head"><span>Dòng chảy (hải lý/giờ)</span><span class="wx-live-value" id="wxCurrentNow">1.5</span></div><svg id="wxCurrent" viewBox="0 0 320 145" role="img" aria-label="Biểu đồ dòng chảy theo thời gian"></svg></div><div class="wx-live-card"><div class="wx-live-head"><span>Mực nước (m)</span><span class="wx-live-value" id="wxWaterNow">2.6</span></div><svg id="wxWater" viewBox="0 0 320 145" role="img" aria-label="Biểu đồ mực nước theo thời gian"></svg></div><div class="wx-sensor" id="wxSensorNote">Nguồn: trạm Phao số 0 · AIS meteo / edge sensor ·</div></div>
+        </div>
+      </div>
+
+      <!-- ALERT CENTER -->
+      <div class="screen-panel" id="screen-alerts" style="display:none;">
+        <div class="appbar"><div class="title">Trung tâm cảnh báo</div></div>
+        <div class="content">
+          <div class="filter-row">
+            <div class="filter-chip on" data-f="all" onclick="filterAlerts(this)">Tất cả</div>
+            <div class="filter-chip" data-f="new" onclick="filterAlerts(this)">Mới</div>
+            <div class="filter-chip" data-f="ack" onclick="filterAlerts(this)">Đã xác nhận</div>
+            <div class="filter-chip" data-f="resolved" onclick="filterAlerts(this)">Đã xử lý</div>
+          </div>
+          <div id="alertListWrap"></div>
+        </div>
+      </div>
+
+      <!-- ACCOUNT -->
+      <div class="screen-panel" id="screen-account" style="display:none;">
+        <div class="appbar"><div class="title">Tài khoản của tôi</div></div>
+        <div class="content">
+          <div class="profile-card"><div class="avatar">NT</div><div><div class="profile-name">Nguyễn Quyết Thắng</div><div class="profile-sub">Mã số hoa tiêu: VT-1042 - Hoa tiêu hạng Nhất</div><div class="profile-meta"><span>Xí nghiệp Hoa tiêu Vũng Tàu</span><span>Ca trực: 08:00 - 16:00</span></div></div></div>
+          <div class="section-label">Phản hồi cảnh báo</div>
+          <div id="fbListWrap"></div>
+          <div class="section-label" style="margin-top:20px;">Báo cáo chuyến đi</div>
+          <div class="voy-card" style="cursor:default;"><div class="row1"><div><div class="vname">HOANG NAM 06</div><div class="vroute">UKC nhỏ nhất 1.5 m - 1 cảnh báo - 0 sự kiện nghiêm trọng</div></div></div></div>
+          <button class="btn-secondary">Xuất báo cáo PDF</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="msgModal">
+  <div class="modal-box">
+    <h3>Gửi tin nhắn cho điều độ</h3>
+    <textarea id="msgText"></textarea>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Huỷ</button><button class="btn-primary" onclick="sendDispatchMsg()">Gửi</button></div>
+  </div>
+</div>
+
+<script src="/ukc-model.js"></script><script src="/alert-policy.js"></script><script>
+/* ---------- Navigation ---------- */
+function showPanel(id){
+  document.querySelectorAll('.screen-panel').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display = 'flex';
+}
+function navTo(el,id){
+  if(id==='screen-map') ensureMap();
+  showPanel(id);
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+}
+function doLogin(){
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('appShell').classList.remove('hidden');
+  showPanel('screen-home');
+  setTimeout(()=>{document.getElementById('boardBanner').style.display='flex';},600);
+  unlockAudio();
+}
+/* Browsers block audio.start() until a real user gesture has happened at least once. Without this,
+   the FIRST beep (or any beep fired before the user has clicked anything else) is silently dropped -
+   which is exactly why sound felt inconsistent. Unlocking right on the login click fixes every
+   beep for the rest of the session. */
+function unlockAudio(){
+  try{
+    const ctx = window._audioCtx || (window._audioCtx = new (window.AudioContext||window.webkitAudioContext)());
+    if(ctx.state==='suspended') ctx.resume();
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    g.gain.value=0.0001; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.05);
+  }catch(e){}
+}
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* ---------- Planning data ---------- */
+const genTable=[['00-04','2.1 m','8 kn','1.0 kn','An toàn'],['04-08','1.6 m','10 kn','1.2 kn','An toàn'],
+  ['08-12','1.3 m','16 kn','1.6 kn','Chú ý'],['12-16','0.9 m','19 kn','1.8 kn','Nguy hiểm'],
+  ['16-20','1.5 m','12 kn','1.1 kn','An toàn'],['20-24','2.0 m','9 kn','0.9 kn','An toàn']];
+const voyages = {
+  vietsun:{name:'VIETSUN CONFIDENT', slot:'13:40 - 14:20', info:[['IMO / MMSI','9812345 / 574019'],['Loại tàu','Tàu container'],['LOA / Draft','299 m / 13.4 m']],
+    table:genTable, safe:false, altTime:'16:10 - 16:50',
+    reason:'Khung giờ 13:40 - 14:20 rơi vào lúc triều xuống thấp kết hợp gió cấp 5 (19 hải lý/giờ). UKC ước tính chỉ đạt 0.9 m, thấp hơn ngưỡng an toàn tối thiểu 1.2 m.'},
+  apollo:{name:'APOLLO STAR', slot:'19:50 - 20:30', info:[['IMO / MMSI','9755012 / 574102'],['Loại tàu','Tàu hàng rời'],['LOA / Draft','210 m / 10.1 m']],
+    table:genTable, safe:true,
+    reason:'Khung giờ 19:50 - 20:30 nằm trong giai đoạn triều lên ổn định, gió dưới 15 hải lý/giờ. UKC ước tính đạt 1.7 m, cao hơn ngưỡng an toàn tối thiểu.'},
+  thanhdat:{name:'THANH DAT 86', slot:'22:15 - 22:55', info:[['IMO / MMSI','9701244 / 574311'],['Loại tàu','Tàu container'],['LOA / Draft','230 m / 11.8 m']],
+    table:genTable, safe:true,
+    reason:'Khung giờ 22:15 - 22:55 điều kiện gió và dòng chảy ổn định, UKC ước tính đạt 1.9 m.'},
+  viet_thuan:{name:'VIET THUAN 10-03', slot:'02:30 - 03:10', info:[['IMO / MMSI','9688213 / 574450'],['Loại tàu','Hàng rời'],['LOA / Draft','142 m / 8.6 m']],
+    table:genTable, safe:false, altTime:'04:10 - 04:50',
+    reason:'Khung giờ 02:30 - 03:10 trùng thời điểm nước ròng sâu nhất trong ngày, UKC ước tính chỉ đạt 1.0 m đối với tàu này.'}
+};
+const pilotShift={start:480,end:1230}; // 08:00-20:30
+const safeSlotCatalog=['08:40 - 09:20','10:10 - 10:50','16:10 - 16:50','18:30 - 19:10'];
+const occupiedSlots=[{key:'completed',slot:'06:10 - 06:55'}];
+function slotMins(slot){const nums=slot.match(/\d{1,2}:\d{2}/g).map(x=>{const [h,m]=x.split(':').map(Number);return h*60+m;});return {start:nums[0],end:nums[1]};}
+function slotAvailable(slot,key){const a=slotMins(slot);if(a.start<pilotShift.start||a.end>pilotShift.end)return false;const used=[...occupiedSlots,...Object.entries(voyages).filter(([k,v])=>k!==key&&v.confirmedSlot).map(([k,v])=>({key:k,slot:v.confirmedSlot}))];return !used.some(x=>{const b=slotMins(x.slot);return a.start<b.end+45&&a.end+45>b.start;});}
+function toggleAltPicker(key){
+  const p=document.getElementById('altPicker');
+  const show = p.style.display==='none';
+  p.style.display = show?'block':'none';
+  if(show){
+    const slots=safeSlotCatalog.filter(s=>slotAvailable(s,key));
+    const sel=document.getElementById('altSelect');
+    if(!slots.length){ sel.innerHTML='<option disabled>Không còn khung giờ an toàn phù hợp trong ca trực</option>'; return; }
+    sel.innerHTML = slots.map(s=>`<option value="${s}" ${s===voyages[key].altTime?'selected':''}>${s}</option>`).join('');
+  }
+}
+/* If the pilot accepts the AI-recommended time exactly, no reason is needed - just confirm.
+   Only picking a DIFFERENT time (or keeping the original unsafe slot) requires writing a reason,
+   since that's the case dispatch actually needs to know about. */
+function confirmAltSelect(key){
+  const sel=document.getElementById('altSelect');
+  if(!sel.value || sel.options[sel.selectedIndex].disabled){ toast('Không có khung giờ khả dụng để chọn.'); return; }
+  if(sel.value===voyages[key].altTime){
+    confirmSlot(key, sel.value);
+  } else {
+    openReasonModal(key,'alt',sel.value);
+  }
+}
+const ukcPoints = [{h:0,v:2.1},{h:4,v:1.6},{h:8,v:1.3},{h:10,v:1.5},{h:12,v:0.9},{h:14,v:0.95},{h:16,v:1.5},{h:20,v:2.0},{h:24,v:2.1}];
+function ukcAt(h){ for(let i=0;i<ukcPoints.length-1;i++){const a=ukcPoints[i],b=ukcPoints[i+1]; if(h>=a.h&&h<=b.h){const t=(h-a.h)/(b.h-a.h); return a.v+(b.v-a.v)*t;}} return ukcPoints[ukcPoints.length-1].v; }
+function badgeClass(v){ return v==='An toàn'?'safe':(v==='Chú ý'?'warn':'danger'); }
+
+let currentVoyage='vietsun';
+function openPlanning(key){
+  if(!voyages[key]){ toast('Chuyến đi này đã hoàn tất, không cần đánh giá lại.'); return; }
+  currentVoyage=key; const v=voyages[key];
+  document.getElementById('pl-name').textContent=v.name;
+  document.getElementById('pl-slot').textContent=v.slot;
+  document.getElementById('pl-slot-badge').className='badge '+(v.safe?'safe':'danger');
+  document.getElementById('pl-slot-badge').textContent=v.safe?'An toàn':'Không an toàn';
+  document.getElementById('pl-info').innerHTML=v.info.map(i=>`<div class="info-cell"><div class="k">${i[0]}</div><div class="v">${i[1]}</div></div>`).join('');
+  document.getElementById('pl-table').innerHTML='<tr><th>Khung giờ</th><th>Mực nước</th><th>Gió</th><th>Dòng chảy</th><th>Đánh giá</th></tr>' +
+    v.table.map(r=>`<tr><td>${r[0]}h</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="badge ${badgeClass(r[4])}">${r[4]}</span></td></tr>`).join('');
+  const rec=document.getElementById('pl-rec');
+  rec.className='rec-card'+(v.safe?'':' danger');
+  document.getElementById('pl-rec-label').textContent = v.safe ? 'Khuyến nghị: An toàn để khởi hành' : 'Khuyến nghị: Không nên khởi hành đúng khung giờ này';
+  document.getElementById('pl-rec-text').innerHTML = v.reason;
+  const altBox=document.getElementById('pl-alt-time');
+  if(!v.safe){ altBox.style.display='block'; altBox.textContent='Khung giờ thay thế được khuyến nghị: '+v.altTime; } else { altBox.style.display='none'; }
+  const actions=document.getElementById('pl-rec-actions');
+  if(v.safe){
+    actions.innerHTML = `<button class="btn-primary" onclick="confirmSlot('${key}', voyages['${key}'].slot)">Chốt giờ khởi hành này</button>`;
+  } else {
+    actions.innerHTML = `
+      <button class="btn-primary" id="altToggleBtn" onclick="toggleAltPicker('${key}')">Chọn giờ thay thế</button>
+      <div id="altPicker" class="alt-picker" style="display:none;">
+        <select id="altSelect" class="alt-select"></select>
+        <div class="alt-hint">Chọn đúng giờ AI khuyến nghị (${v.altTime}) sẽ được xác nhận ngay - đổi sang giờ khác sẽ cần nêu lý do gửi điều độ.</div>
+        <button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="confirmAltSelect('${key}')">Xác nhận khung giờ đã chọn</button>
+      </div>
+      <div class="keep-old-link" onclick="openReasonModal('${key}','keep', voyages['${key}'].slot)">Tôi đã xem cảnh báo - vẫn giữ khung giờ đã phân công (${v.slot})</div>`;
+  }
+  drawUkcChart();
+  showPanel('screen-planning');
+}
+
+function updateHomeSlotLine(key, label, time){
+  const badge=document.getElementById('statusBadge-'+key);
+  const line=document.getElementById('slotLine-'+key);
+  if(line) line.innerHTML=label+': <b>'+time+'</b>';
+  return badge;
+}
+function confirmSlot(key, slotTime){
+  if(!slotAvailable(slotTime,key)){toast('Khung giờ này đã có chuyến khác, chồng thời gian chuyển tàu hoặc nằm ngoài ca trực.');openPlanning(key);return;}
+  const badge=updateHomeSlotLine(key,'Khung giờ đã xác nhận',slotTime);
+  badge.className='badge safe'; badge.textContent='Đã thêm lịch trình';
+  voyages[key].confirmedSlot=slotTime; voyages[key].ttStatus='Đã xác nhận';
+  toast('Đã thêm vào lịch trình lúc '+slotTime+'.');
+  buildTimetable(); showPanel('screen-timetable');
+}
+/* Reason modal covers BOTH "keep the old unsafe time" and "pick a different (non-AI) time" - either
+   way dispatch needs a reason, so writing it and confirming are now one single step instead of two
+   separate buttons that used to exist for this. */
+let pendingReason=null;
+function openReasonModal(key, mode, time){
+  pendingReason={key,mode,time};
+  const v=voyages[key];
+  document.getElementById('msgText').value = mode==='keep'
+    ? `Xin giữ nguyên khung giờ đã phân công ${time} cho ${v.name} dù hệ thống cảnh báo không an toàn - lý do: `
+    : `Đề nghị điều chỉnh khung giờ dẫn tàu ${v.name} sang ${time} (khác với khung giờ AI khuyến nghị ${v.altTime}) - lý do: `;
+  document.getElementById('msgModal').classList.add('show');
+}
+function closeModal(){ document.getElementById('msgModal').classList.remove('show'); pendingReason=null; }
+function sendDispatchMsg(){
+  if(!pendingReason) return;
+  const {key,mode,time}=pendingReason; const v=voyages[key];
+  document.getElementById('msgModal').classList.remove('show');
+  if(mode==='keep'){
+    const badge=updateHomeSlotLine(key,'Khung giờ được phân công (giữ nguyên)',time);
+    v.confirmedSlot=time; v.ttStatus='Hoa tiêu giữ giờ cũ - đã gửi lý do';
+    badge.className='badge warn'; badge.textContent='Giữ giờ cũ - đã gửi điều độ';
+    toast('Đã ghi nhận lý do và gửi tới điều độ.'); buildTimetable(); showPanel('screen-timetable');
+  } else {
+    const badge=updateHomeSlotLine(key,'Khung giờ được phân công',v.slot);
+    badge.className='badge neutral'; badge.textContent='Đang chờ điều độ';
+    v.ttStatus='Đang chờ điều độ';
+    toast('Đã gửi lý do và yêu cầu khung giờ '+time+' tới điều độ. Vui lòng chờ phản hồi.');
+    showPanel('screen-home');
+    setTimeout(()=>{
+      const b2=updateHomeSlotLine(key,'Khung giờ đã được điều độ duyệt',time);
+      b2.className='badge safe'; b2.textContent='Điều độ đã duyệt';
+      v.confirmedSlot=time; v.ttStatus='Đã xác nhận';
+      buildTimetable();
+      toast('Điều độ đã duyệt khung giờ '+time+' cho '+v.name+'.');
+    }, 4000);
+  }
+  pendingReason=null;
+}
+
+function buildTimetable(){
+  const wrap=document.getElementById('ttList');
+  const rows=Object.keys(voyages).filter(k=>voyages[k].ttStatus).map(k=>{
+    const v=voyages[k];
+    return {t:v.confirmedSlot||v.slot, name:v.name, sub:'Khung giờ phân công gốc: '+v.slot, st:v.ttStatus, key:k};
+  });
+  rows.sort((a,b)=>a.t.localeCompare(b.t));
+  if(!rows.length){ wrap.innerHTML='<div style="font-size:12.5px;color:var(--text-faint);">Chưa có chuyến nào được xác nhận. Vào từng phân công ở Trang chủ để xem khuyến nghị.</div>'; return; }
+  wrap.innerHTML = rows.map(r=>{
+    const cls = r.st==='Đã xác nhận'?'safe':'neutral';
+    const boardBtn = r.st==='Đã xác nhận' ? `<button class="tt-board-btn" onclick="startBoarding('${r.key}')">Lên tàu</button>` : '';
+    return `<div class="tt-row"><div class="tt-time mono">${r.t}</div><div class="tt-body"><div class="tt-name">${r.name}</div><div class="tt-sub">${r.sub}</div></div><span class="badge ${cls}" style="margin-right:8px;">${r.st}</span>${boardBtn}</div>`;
+  }).join('');
+}
+
+/* ---------- Boarding -> Edge Computing check ---------- */
+function startBoarding(key){
+  document.getElementById('boardBanner').style.display='none';
+  document.getElementById('ec-voyname').textContent = voyages[key] ? voyages[key].name : 'Chuyến đi';
+  showPanel('screen-edgecheck');
+  ['ck1','ck2','ck3','ck4','ck5'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Đang kiểm tra...';
+    el.style.color='var(--text-faint)';
+  });
+  const results=['Đã kết nối','HPE < 10m','Đang thu tín hiệu','Đã đồng bộ','86%'];
+  results.forEach((txt,i)=>{
+    setTimeout(()=>{
+      const el=document.getElementById('ck'+(i+1));
+      el.style.color='var(--safe)';
+      el.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>'+txt;
+      if(i===results.length-1){
+        const btn=document.getElementById('ecContinueBtn');
+        btn.style.opacity='1'; btn.style.pointerEvents='auto';
+      }
+    }, 450*(i+1));
+  });
+}
+function goMap(){
+  boarded=true;
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+  document.querySelector('[data-target="screen-map"]').classList.add('active');
+  ensureMap();
+  showPanel('screen-map');
+  updateMapMode();
+  scheduleWeatherAlert();
+}
+
+let boarded=false, weatherScheduled=false;
+function ensureMap(){ if(!window._mapBuilt){ buildMap(); window._mapBuilt=true; } updateMapMode(); }
+function updateMapMode(){
+  const note=document.getElementById('overviewNote'), own=document.getElementById('ownShip');
+  if(note) note.style.display=boarded?'none':'block';
+  if(own) own.style.display=boarded?'':'none';
+}
+function scheduleWeatherAlert(){
+  if(weatherScheduled) return; weatherScheduled=true;
+  setTimeout(()=>triggerWeatherAlert('Gành Rái','Gió tăng 22 kn, giật 27 kn','Giảm tốc độ và đánh giá lại điều kiện quay trở.'),7000);
+}
+
+/* ---------- UKC chart drag ---------- */
+function drawUkcChart(){
+  const w=320; let pts=[];
+  for(let h0=0;h0<=24;h0+=1){ pts.push(`${(h0/24*w).toFixed(1)},${(130-((ukcAt(h0))/2.3*110+8)).toFixed(1)}`); }
+  document.getElementById('ukcLine').setAttribute('points', pts.join(' '));
+  setScrub(9);
+}
+function setScrub(hourVal){
+  hourVal=Math.max(0,Math.min(24,hourVal));
+  const w=320,x=hourVal/24*w,val=ukcAt(hourVal),y=130-((val)/2.3*110+8);
+  document.getElementById('scrubLine').setAttribute('x1',x); document.getElementById('scrubLine').setAttribute('x2',x);
+  document.getElementById('scrubDot').setAttribute('cx',x); document.getElementById('scrubDot').setAttribute('cy',y);
+  const hh=Math.floor(hourVal),mm=Math.round((hourVal-hh)*60);
+  const status=val>=1.5?'An toàn':(val>=1.2?'Chú ý':'Nguy hiểm');
+  const color=val>=1.5?'var(--safe)':(val>=1.2?'var(--warn)':'var(--danger)');
+  const el=document.getElementById('scrubReadout'); el.style.color=color;
+  el.textContent=`Giờ ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')} - UKC dự báo ${val.toFixed(2)} m (${status})`;
+}
+(function(){
+  const svg=document.getElementById('ukcChart'); let dragging=false;
+  function toHour(evt){ const rect=svg.getBoundingClientRect(); const x=(evt.clientX-rect.left)/rect.width*320; return Math.max(0,Math.min(24,x/320*24)); }
+  svg.addEventListener('pointerdown',e=>{dragging=true; setScrub(toHour(e)); svg.setPointerCapture(e.pointerId);});
+  svg.addEventListener('pointermove',e=>{ if(dragging) setScrub(toHour(e)); });
+  svg.addEventListener('pointerup',()=>dragging=false);
+  svg.addEventListener('pointercancel',()=>dragging=false);
+})();
+
+/* ================= MAP ================= */
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+
+
+/* ===== Vũng Tàu – Thị Vải: hình học theo tọa độ WGS-84 thật =====
+   Nguồn: TBHH luồng VT–TV (Cục HH&ĐT, 11/2025) và TB 1926/TBHH-CVHHVT (06/2025).
+   Tim luồng nội suy từ các điểm biên luồng; bờ đất vẽ gần đúng; độ rộng luồng phóng to để dễ nhìn. */
+const PXNM=150, LON0=106.90, LAT_T=10.68, COSL=Math.cos(10.47*Math.PI/180);
+const gx=lon=>(lon-LON0)*60*COSL*PXNM, gy=lat=>(LAT_T-lat)*60*PXNM;
+const MAP_W=Math.round(gx(107.135)), MAP_H=Math.round(gy(10.252));
+const P=(lat,lon)=>[gx(lon),gy(lat)];
+const CL_REAL=[[10.2799,107.0858],[10.2990,107.0748],[10.3270,107.0545],[10.3690,107.0440],[10.3960,107.0360],[10.4080,107.0280],[10.4148,107.0153],
+ [10.4300,107.0040],[10.4503,106.9975],[10.4923,106.9975],[10.5134,107.0047],[10.5328,107.0231],[10.5447,107.0200],[10.5700,107.0230],[10.5925,107.0250],
+ [10.6017,107.0189],[10.6106,107.0111],[10.6148,107.0058],[10.6225,106.9972],[10.6303,106.9963],[10.6375,107.0061],[10.6420,107.0122],[10.6483,107.0128],[10.6551,107.0169],[10.6617,107.0122]];
+const CLP=CL_REAL.map(p=>P(p[0],p[1])).sort((a,b)=>a[1]-b[1]);
+function cxAt(y){ if(y<=CLP[0][1]) return CLP[0][0]; for(let i=0;i<CLP.length-1;i++){const a=CLP[i],b=CLP[i+1]; if(y>=a[1]&&y<=b[1]) return a[0]+(b[0]-a[0])*(y-a[1])/(b[1]-a[1]);} return CLP[CLP.length-1][0]; }
+const Y_TOP=Math.round(CLP[0][1]), Y_P0=Math.round(CLP[CLP.length-1][1]), Y_GR=Math.round(gy(10.4148)), Y_GEM=Math.round(gy(10.535));
+const halfAt=y=> y>Y_GR? 62 : y>gy(10.47)? 54 : 46;
+const BUOY_Y=[], BUOY_RED_X=[], BUOY_GREEN_X=[];
+for(let y=Y_TOP+10;y<=Y_P0-30;y+=95){ BUOY_Y.push(y); BUOY_RED_X.push(cxAt(y)-halfAt(y)); BUOY_GREEN_X.push(cxAt(y)+halfAt(y)); }
+const OWN={x:cxAt(gy(10.392)),y:gy(10.392)};
+let ownPos={x:OWN.x,y:OWN.y};
+function interpArr(xs,y){
+  for(let i=0;i<BUOY_Y.length-1;i++){ const y0=BUOY_Y[i],y1=BUOY_Y[i+1]; if(y>=y0&&y<=y1){ const t=(y-y0)/(y1-y0); return xs[i]+(xs[i+1]-xs[i])*t; } }
+  return y<BUOY_Y[0]?xs[0]:xs[xs.length-1];
+}
+function channelAt(y){ const xl=interpArr(BUOY_RED_X,y), xr=interpArr(BUOY_GREEN_X,y); return {cx:(xl+xr)/2, half:(xr-xl)/2-20, left:xl, right:xr}; }
+function buildLanePath(laneFrac,yStart,yEnd,steps){
+  const pts=[];
+  for(let i=0;i<=steps;i++){ const y=yStart+(yEnd-yStart)*i/steps; const c=channelAt(y); pts.push([c.cx+laneFrac*c.half, y]); }
+  return pts;
+}
+/* UKC hazard zone: placed just inside the red bank AT the pinch point - reachable, not floating outside the channel */
+/* UKC hazard zone: sits right at the tip of the headland (see the small land point added above),
+   just grazing the port buoy line - this is the point where shallow water hugging the shore
+   actually touches the navigable edge of the channel. */
+const UKC_ZONE=(()=>{ const y=gy(10.4503); return {cx:cxAt(y)-34, cy:y, rx:30, ry:62}; })();
+function inEllipseScaled(x,y,e,scale){ return ((x-e.cx)**2)/((e.rx*scale)**2) + ((y-e.cy)**2)/((e.ry*scale)**2) <= 1; }
+let currentUkcValue=1.8;
+/* Own ship transits the channel exactly like the other traffic, on its own lane, and only pauses
+   moving while the pilot is actively holding/dragging it - releasing lets it carry on again. */
+const ownPath=buildLanePath(0.28,Y_P0-20,Y_GEM,160);
+function nearestTOnPath(path,x,y){ let bestT=0,bestD=1e9; path.forEach((p,i)=>{const d=Math.hypot(p[0]-x,p[1]-y); if(d<bestD){bestD=d;bestT=i/(path.length-1);}}); return bestT; }
+let ownT=nearestTOnPath(ownPath, OWN.x, OWN.y);
+let ownDragging=false;
+ownPos = pathPos(ownPath, ownT); // start already sitting exactly on its lane, no jump on first frame
+let ownHeading=ownPos.ang;
+let navState={heading:ownHeading,cog:ownPos.ang,rot:0,sog:7.2,lastHeading:ownHeading};
+let ownRenderPos={x:ownPos.x,y:ownPos.y}, renderedHeading=ownHeading, mapDelta=16, lastMapFrame=performance.now();
+
+function prepareInitialTraffic(v){
+ const acceptable=t=>{const p=pathPos(v.path,t),prediction=vesselCPA({...v,curPos:p},ownHeading,navState.sog,10/60);return Math.hypot(p.x-ownPos.x,p.y-ownPos.y)/PXNM>=.8&&(prediction.cpa>.25||prediction.tcpa<=0)};
+ if(acceptable(v.t))return;
+ for(let i=1;i<=200;i++){const t=(v.t+i*.037)%1;if(acceptable(t)){v.t=t;return}}
+}
+function buildMap(){
+  const svg=document.getElementById('mapSvg');
+  svg.innerHTML='';
+  svg.setAttribute('width',MAP_W); svg.setAttribute('height',MAP_H); svg.setAttribute('viewBox',`0 0 ${MAP_W} ${MAP_H}`);
+  el('rect',{width:MAP_W,height:MAP_H,fill:'var(--land)'},svg);
+  const poly=(pts,fill,extra={})=>el('polygon',Object.assign({points:pts.map(p=>{const q=P(p[0],p[1]);return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' '),fill},extra),svg);
+  const line=(pts,w,col,extra={})=>el('polyline',Object.assign({points:pts.map(p=>{const q=P(p[0],p[1]);return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' '),fill:'none',stroke:col,'stroke-width':w,'stroke-linejoin':'round','stroke-linecap':'round'},extra),svg);
+  // mangrove texture on land (Cần Giờ, Long Sơn, Phú Mỹ)
+  for(let k=0;k<160;k++){ const x=(k*137)%MAP_W, y=(k*263)%MAP_H; el('circle',{cx:x,cy:y,r:2.2,fill:'#D9CDAE',opacity:.7},svg); }
+  // sea + Gành Rái bay (đường bờ gần đúng)
+  poly([[10.252,106.90],[10.252,107.135],[10.372,107.135],[10.356,107.106],[10.336,107.095],[10.322,107.085],[10.331,107.074],[10.350,107.069],[10.375,107.071],[10.398,107.077],[10.418,107.072],[10.434,107.059],[10.447,107.042],[10.458,107.021],[10.468,107.009],
+        [10.470,106.986],[10.455,106.989],[10.432,106.995],[10.418,106.992],[10.402,106.976],[10.388,106.958],[10.377,106.932],[10.371,106.90]],'var(--water)');
+  // Thị Vải river, Cái Mép, Gò Gia, Lòng Tàu (Sài Gòn – Vũng Tàu)
+  const river=CL_REAL.filter(p=>p[0]>=10.44);
+  line(river,150,'var(--water)'); line(river.slice(4),110,'var(--water)');
+  line([[10.4148,107.0153],[10.4153,107.0152],[10.4413,106.9594],[10.4501,106.9497],[10.4642,106.9425],[10.4718,106.9422],[10.4908,106.9483],[10.4883,106.9511],[10.5080,106.9510],[10.5244,106.9461],[10.5308,106.9244]],70,'var(--water)');
+  line([[10.5134,107.0047],[10.5180,106.9800],[10.5300,106.9560],[10.5450,106.9300]],60,'var(--water)');
+  line([[10.5328,107.0231],[10.5420,107.0000],[10.5600,106.9800],[10.5800,106.9650]],52,'var(--water)');
+  line([[10.4600,107.0350],[10.4800,107.0600],[10.4950,107.0900]],36,'var(--water)');
+  // Lòng Tàu channel axis (Sài Gòn – Vũng Tàu)
+  line([[10.4148,107.0153],[10.4413,106.9594],[10.4501,106.9497],[10.4642,106.9425],[10.4718,106.9422],[10.4908,106.9483],[10.5080,106.9510],[10.5244,106.9461],[10.5308,106.9244]],18,'#BFDCEA');
+  // channel body (Vũng Tàu – Thị Vải), drawn from the same geometry as buoys and vessel lanes
+  let left='',right='';
+  for(let y=Y_TOP;y<=Y_P0;y+=12){ const c=cxAt(y),h=halfAt(y); left+=(left?'L':'M')+(c-h).toFixed(1)+','+y; right=(c+h).toFixed(1)+','+y+(right?'L'+right:''); }
+  el('path',{d:left+'L'+right+'Z',fill:'#BCDAE8',stroke:'#8FB9CF','stroke-width':1.2},svg);
+  el('polyline',{points:CLP.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),fill:'none',stroke:'#B24CC4','stroke-width':1.4,'stroke-dasharray':'6 5',opacity:0.55},svg);
+
+  // soundings: real shoal points (TB 1926/TBHH-CVHHVT, 06/2025) + chart-style depths
+  const realSnd=[[10.2925,107.0755,'15,4'],[10.2992,107.0746,'14,7'],[10.3028,107.0689,'15,0'],[10.3171,107.0598,'13,6'],[10.3182,107.0615,'15,4'],[10.4503,106.9953,'12,6'],[10.4923,106.9955,'15,3'],[10.5131,107.0043,'15,3'],
+    [10.5327,107.0231,'13,6'],[10.5447,107.0204,'11,5'],[10.5925,107.0251,'11,4'],[10.6017,107.0188,'11,3'],[10.6113,107.0116,'10,7'],[10.6148,107.0059,'10,6'],[10.6439,107.0125,'7,0'],[10.6606,107.0138,'6,8']];
+  realSnd.forEach(s=>{const q=P(s[0],s[1]); el('text',{x:q[0]+4,y:q[1]+4,'font-size':10.5,fill:'#8A1F1F','font-family':'Roboto Mono, monospace','font-weight':700},svg).textContent=s[2];});
+  const genSnd=[[10.27,107.02,'17'],[10.30,107.10,'19'],[10.29,106.96,'16'],[10.34,107.00,'9'],[10.36,107.02,'12'],[10.38,107.00,'8'],[10.42,107.04,'6'],[10.44,107.02,'7'],[10.31,107.04,'14'],[10.35,107.06,'11']];
+  genSnd.forEach(s=>{const q=P(s[0],s[1]); el('text',{x:q[0],y:q[1],'font-size':10,fill:'var(--chart-text)','font-family':'Roboto Mono, monospace'},svg).textContent=s[2];});
+
+  // lateral buoys along both edges (red = trái/port, green = phải/starboard khi vào cảng)
+  BUOY_Y.forEach((y,i)=>{
+    const n=BUOY_Y.length-i, rx=BUOY_RED_X[i], gx2=BUOY_GREEN_X[i];
+    el('polygon',{points:`${rx},${y-8} ${rx+8},${y+7} ${rx-8},${y+7}`,fill:'#D4433C'},svg);
+    el('text',{x:rx-12,y:y+5,'font-size':10,fill:'#4A2020','font-family':'Inter','font-weight':700,'text-anchor':'end'},svg).textContent=String(n*2);
+    el('polygon',{points:`${gx2},${y-8} ${gx2+8},${y+7} ${gx2-8},${y+7}`,fill:'#2C9F4B'},svg);
+    el('text',{x:gx2+12,y:y+5,'font-size':10,fill:'#1E4A2A','font-family':'Inter','font-weight':700},svg).textContent=String(n*2-1);
+  });
+  // safe-water buoy "0" and junction buoy "GR"
+  [[10.2799,107.0858,'Phao số 0'],[10.4148,107.0153,'Phao GR']].forEach(b=>{ const q=P(b[0],b[1]);
+    el('circle',{cx:q[0],cy:q[1],r:9,fill:'#fff',stroke:'#D4433C','stroke-width':4},svg);
+    el('text',{x:q[0]+14,y:q[1]+4,'font-size':12,fill:'#7A1C17','font-family':'Inter','font-weight':800,'paint-order':'stroke',stroke:'#fff','stroke-width':3},svg).textContent=b[2]; });
+
+  // anchorages (vùng neo trước Vũng Tàu và trong vịnh Gành Rái)
+  const anc=(lat,lon,n)=>{ const c=P(lat,lon); for(let k=0;k<n;k++){ const g=el('g',{transform:`translate(${c[0]+((k*53)%110)-55},${c[1]+((k*31)%80)-40}) rotate(${(k*67)%360})`},svg); el('polygon',{points:'0,-6 4,5 0,3 -4,5',fill:'#6B7FA3'},g);} };
+  anc(10.290,107.030,10); anc(10.362,107.008,6);
+
+  // place names & terminals (vị trí cảng gần đúng)
+  const names=[['VŨNG TÀU',10.372,107.083],['Bãi Trước',10.347,107.074],['CẦN GIỜ',10.430,106.925],['LONG SƠN',10.470,107.075],['Vịnh Gành Rái',10.392,107.002],['Sông Lòng Tàu',10.470,106.948],['Sông Gò Gia',10.528,106.955],['Sông Cái Mép',10.565,106.975],['Sông Thị Vải',10.575,107.000],['PHÚ MỸ',10.600,107.060],['CÁI MÉP',10.520,107.045]];
+  names.forEach(n=>{const q=P(n[1],n[2]); el('text',{x:q[0],y:q[1],'font-size':n[0]===n[0].toUpperCase()?17:13,fill:'#3A5068','font-family':'Inter','font-weight':700,opacity:0.75,'text-anchor':'middle','letter-spacing':n[0]===n[0].toUpperCase()?2:0},svg).textContent=n[0];});
+  const berths=[['Gemalink',10.5285,107.0300],['CMIT',10.5390,107.0280],['TCIT',10.5480,107.0275],['SSIT',10.5800,107.0310],['SITV',10.5900,107.0320],['Phước An',10.6180,107.0130],['Vedan Phước Thái',10.6600,107.0215]];
+  berths.forEach(b=>{const q=P(b[1],b[2]); el('rect',{x:q[0],y:q[1]-10,width:16,height:20,fill:'#5A6B7D',rx:2},svg); el('text',{x:q[0]+22,y:q[1]+4,'font-size':11,fill:'#33475C','font-family':'Inter','font-weight':700},svg).textContent=b[0];});
+  // north arrow + scale bar near Phao 0
+  { const q=P(10.268,106.925); el('text',{x:q[0],y:q[1],'font-size':13,fill:'#33475C','font-family':'Inter','font-weight':800},svg).textContent='N ↑';
+    el('line',{x1:q[0]+40,y1:q[1]-4,x2:q[0]+40+PXNM,y2:q[1]-4,stroke:'#33475C','stroke-width':2},svg);
+    el('text',{x:q[0]+40+PXNM/2,y:q[1]-10,'font-size':10.5,fill:'#33475C','font-family':'Inter','text-anchor':'middle'},svg).textContent='1 hải lý';
+    el('text',{x:q[0],y:q[1]+18,'font-size':10,fill:'#5C7186','font-family':'Inter'},svg).textContent='Tim luồng theo tọa độ TBHH · bờ đất gần đúng · độ rộng luồng phóng to'; }
+
+  // UKC hazard at the real 12,6 m shoal
+  const gUkc=el('g',{id:'layerUKC'},svg);
+  el('ellipse',{cx:UKC_ZONE.cx,cy:UKC_ZONE.cy,rx:UKC_ZONE.rx,ry:UKC_ZONE.ry,fill:'#DC2626',opacity:0.20},gUkc);
+  el('ellipse',{cx:UKC_ZONE.cx,cy:UKC_ZONE.cy,rx:UKC_ZONE.rx,ry:UKC_ZONE.ry,fill:'none',stroke:'#DC2626','stroke-width':1.4,'stroke-dasharray':'5 4',opacity:0.6},gUkc);
+  el('text',{x:UKC_ZONE.cx-40,y:UKC_ZONE.cy-UKC_ZONE.ry-8,'font-size':10.5,fill:'#8A1F1F','font-family':'Inter','font-weight':700,'paint-order':'stroke',stroke:'#fff','stroke-width':3},gUkc).textContent='Điểm cạn 12,6 m';
+
+  // environmental zones: tap/click a zone for its live mock sensor feed.
+  const gEnv=el('g',{id:'layerEnv'},svg);
+  const zones=[{n:'Phao số 0',la:10.2799,lo:107.0700,c:'#45a7d8'},{n:'Gành Rái',la:10.405,lo:107.045,c:'#e19b35'},{n:'Cái Mép',la:10.522,lo:106.985,c:'#45a7d8'},{n:'Sông Thị Vải',la:10.600,lo:106.998,c:'#56a970'}];
+  zones.forEach(z=>{ const q=P(z.la,z.lo); z.x=q[0]; z.y=q[1]; const g=el('g',{style:'cursor:pointer;'},gEnv); el('circle',{cx:z.x,cy:z.y,r:38,fill:z.c,opacity:.14,stroke:z.c,'stroke-width':1.2,'stroke-dasharray':'4 3'},g); const tx=el('text',{x:z.x+43,y:z.y+3,class:'zone-label'},g);tx.textContent=z.n; g.addEventListener('click',e=>{e.stopPropagation();openZone(z.n);}); });
+  [[10.30,107.02],[10.36,107.03],[10.43,107.03],[10.50,107.03],[10.58,107.01]].map(p=>P(p[0],p[1])).forEach(p=>{
+    el('line',{x1:p[0],y1:p[1],x2:p[0]+30,y2:p[1]+30,stroke:'#2C6FD1','stroke-width':1.6,opacity:0.65},gEnv);
+    el('line',{x1:p[0]+30,y1:p[1]+30,x2:p[0]+23,y2:p[1]+22,stroke:'#2C6FD1','stroke-width':1.6,opacity:0.65},gEnv);
+    el('line',{x1:p[0]+30,y1:p[1]+30,x2:p[0]+20,y2:p[1]+28,stroke:'#2C6FD1','stroke-width':1.6,opacity:0.65},gEnv);
+  });
+  { const q=P(10.43,107.03); el('text',{x:q[0]-10,y:q[1]-6,'font-size':10,fill:'#2C6FD1','font-family':'Inter'},gEnv).textContent='Gió 12 kn'; }
+
+  // moving vessels: each on its OWN lane computed from the same channel geometry as the buoys -
+  // this GUARANTEES they stay between the red and green buoy lines at every point of their path.
+  window._vessels=[
+    {id:'v1', name:'THANH DAT 86', path:buildLanePath(-0.55,Y_TOP,Y_P0,170), t:0.22, data:{type:'Cargo',size:'168x24.0m',draft:'9.2m',dest:'CMIT',course:'160°T'}},
+    {id:'v2', name:'APOLLO STAR', path:buildLanePath(0.55,Y_P0,Y_TOP,170), t:0.18, data:{type:'Bulk Carrier',size:'210x30.0m',draft:'10.1m',dest:'PHAO SO 0',course:'340°T'}},
+    {id:'v3', name:'VIET THUAN 10-03', path:buildLanePath(0.4,Y_P0,Y_TOP,170), t:0.70, data:{type:'Bulk Carrier',size:'142x21.0m',draft:'8.6m',dest:'CL CIVILITY',course:'190°T'}},
+    {id:'v4', name:'CL CIVILITY', path:buildLanePath(-0.4,Y_TOP,Y_P0,170), t:0.82, data:{type:'Container',size:'180x27.0m',draft:'10.5m',dest:'GEMALINK',course:'020°T'}},
+    {id:'josco', name:'JOSCO JANE', path:buildLanePath(-0.1,Y_TOP,Y_P0,170), t:0.50, isConflict:true, data:{type:'Container',size:'117x20.0m',draft:'7.3m',dest:'DANANGPS',course:'149°T'}}
+  ];
+  const extraNames=['PACIFIC TRADER','OCEAN PEARL','MEKONG EXPRESS','SAIGON GLORY','CAI MEP STAR','VIETSUN INTEGRITY','EASTERN HOPE','TAN CANG 68','HAI AN VIEW','LONG SON 02','THI VAI 09','GREEN RIVER','VUNG TAU 16'];
+  extraNames.forEach((name,i)=>{const inbound=i%2===0;window._vessels.push({id:'extra-'+i,name,path:buildLanePath(inbound?-.45:.45,inbound?Y_TOP:Y_P0,inbound?Y_P0:Y_TOP,170),t:(i+.5)/extraNames.length,speed:6.2+(i%5)*.4,data:{type:i%4===0?'Tug':i%3===0?'Container':'Cargo',size:i%4===0?'32 x 10 m':'165 x 26 m',draft:i%4===0?'3.4 m':(7+i%5*.7).toFixed(1)+' m',dest:inbound?'CÁI MÉP':'PHAO SỐ 0',course:inbound?'180°T':'000°T'}})});
+  window._vessels.forEach(v=>{
+    prepareInitialTraffic(v);
+    const g=el('g',{id:'ves_'+v.id,style:'cursor:pointer;'},svg);
+    // invisible wider hit-area so a moving, small triangle is still easy to click accurately
+    el('circle',{cx:0,cy:0,r:22,fill:'transparent'},g);
+    el('polygon',{points:'0,-11 7,9 0,5 -7,9',fill: v.isConflict?'#D4433C':'#2563EB'},g);
+    el('line',{x1:0,y1:-11,x2:0,y2:-36,stroke: v.isConflict?'#D4433C':'#2563EB','stroke-width':1.3,'stroke-dasharray':'3 2'},g);
+    // the name label is now INSIDE the same clickable group as its own vessel, with its own
+    // wider invisible hit-area - so clicking the text always reports the correct, matching ship,
+    // instead of falling through to whatever vessel happens to be nearby underneath.
+    const lblG=el('g',{id:'lblg_'+v.id,style:'cursor:pointer;'},svg);
+    el('rect',{x:6,y:-16,width:104,height:20,fill:'transparent'},lblG);
+    const t=el('text',{id:'lbl_'+v.id,x:12,y:-6,'font-size':10.5,fill:'#1B2A44','font-family':'Inter','font-weight':700},lblG); t.textContent=v.name;
+    const onClick=(e)=>{ e.stopPropagation(); showVesselInfo(v.id); };
+    g.addEventListener('click',onClick);
+    lblG.addEventListener('click',onClick);
+  });
+
+  // own ship (draggable in)
+  const own=el('g',{id:'ownShip', transform:`translate(${ownPos.x},${ownPos.y}) rotate(${ownHeading})`, style:'cursor:grab;'},svg);  const safety=el('g',{id:'ownSafety'},own);
+  el('circle',{id:'ownCpaFill',r:94,fill:'#16A34A',opacity:.06},safety);
+  el('circle',{id:'ownCpaRing',r:94,fill:'none',stroke:'#16A34A','stroke-width':1.2,'stroke-dasharray':'6 5',opacity:.55},safety);
+  el('circle',{id:'ownUkcFill',r:58,fill:'#16A34A',opacity:.07},safety);
+  el('circle',{id:'ownUkcRing',r:58,fill:'none',stroke:'#16A34A','stroke-width':1.1,'stroke-dasharray':'4 4',opacity:.62},safety);
+  const ownSafetyLabel=el('text',{id:'ownSafetyLabel',x:-48,y:108,'font-size':9,fill:'#168047','font-family':'Inter','font-weight':700},safety);ownSafetyLabel.textContent='UKC ĐỦ · CPA';
+  el('circle',{r:17,fill:'none',stroke:'#0A1220','stroke-width':1.2},own);
+  el('line',{x1:-17,y1:0,x2:17,y2:0,stroke:'#0A1220','stroke-width':0.7},own);
+  el('line',{x1:0,y1:-17,x2:0,y2:17,stroke:'#0A1220','stroke-width':0.7},own);
+  el('polygon',{points:'0,-27 6,-5 0,-10 -6,-5',fill:'#12212F',stroke:'#fff','stroke-width':0.7},own);
+
+  wireOwnShipDrag(own);
+  buildSidePanel();
+  updateNavigation(ownHeading);
+  requestAnimationFrame(mapTick);
+  wirePan();
+}
+
+/* The vessel's bow follows the live drag vector.  SVG ship artwork points north at rotation 0,
+   so a compass heading (0 = up, 90 = right, 180 = down) maps directly to its rotation. */
+function compassHeading(from,to){ return (Math.atan2(to.x-from.x,-(to.y-from.y))*180/Math.PI+360)%360; }
+function signedHeadingDelta(next,previous){ return ((next-previous+540)%360)-180; }
+function updateNavigation(cog, isManual=false){
+  const heading=ownHeading;
+  const turn=signedHeadingDelta(heading,navState.lastHeading);
+  navState.rot=Math.max(-9.9,Math.min(9.9,navState.rot*.90+turn*.55));
+  navState.heading=heading; navState.cog=cog;
+  navState.sog=Math.max(5.8,7.25-Math.min(1.1,Math.abs(navState.rot)*.075)+(isManual ? .08 : 0));
+  navState.lastHeading=heading;
+  if(performance.now()-(navState.lastRender||0)<100) return;
+  navState.lastRender=performance.now();
+  const rotEl=document.getElementById('rotValue'), rotUnit=document.getElementById('rotUnit');
+  if(!rotEl) return;
+  rotEl.textContent=Math.abs(navState.rot).toFixed(1)+'°';
+  rotUnit.textContent=Math.abs(navState.rot)<.15?'Ổn định':(navState.rot<0?'Port °/m':'Starboard °/m');
+  document.getElementById('hdgValue').textContent=heading.toFixed(1)+'°';
+  document.getElementById('cogValue').textContent=cog.toFixed(1)+'°';
+  document.getElementById('sogValue').textContent=navState.sog.toFixed(1);
+}
+function lerpAngle(from,to,amount){ return from+signedHeadingDelta(to,from)*amount; }
+function renderOwnShip(){
+  /* A longer easing window filters tiny hand/mouse corrections before they reach the icon.
+     This keeps the vessel and its bow visibly steady while dragging, without changing its route. */
+  const blend=1-Math.exp(-mapDelta/180);
+  ownRenderPos.x+=(ownPos.x-ownRenderPos.x)*blend;
+  ownRenderPos.y+=(ownPos.y-ownRenderPos.y)*blend;
+  renderedHeading=lerpAngle(renderedHeading,ownHeading,blend);
+  const ownEl=document.getElementById('ownShip');
+  if(ownEl) ownEl.setAttribute('transform',`translate(${ownRenderPos.x},${ownRenderPos.y}) rotate(${renderedHeading})`);
+}
+
+/* Own ship stays draggable at any time. Its bow immediately tracks the direction from the ship
+   to the pointer, while the displayed navigation data uses exactly the same heading state. */
+function wireOwnShipDrag(own){
+  let dragging=false, moved=false, sx=0, sy=0;
+  own.addEventListener('pointerdown',e=>{ dragging=true; moved=false; sx=e.clientX; sy=e.clientY; own.setPointerCapture(e.pointerId); e.stopPropagation(); });
+  own.addEventListener('pointermove',e=>{
+    if(!dragging) return;
+    if(Math.abs(e.clientX-sx)>3||Math.abs(e.clientY-sy)>3){ moved=true; ownDragging=true; }
+    if(!moved) return;
+    const svg=document.getElementById('mapSvg');
+    const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+    const ctm=svg.getScreenCTM().inverse();
+    const loc=pt.matrixTransform(ctm);
+    const dragHeading=compassHeading(ownPos,loc);
+    ownHeading=dragHeading;
+    ownPos={x:loc.x,y:loc.y};
+    updateNavigation(ownHeading,true);
+    checkOwnProximity();
+  });
+  own.addEventListener('pointerup',(e)=>{
+    dragging=false; own.style.cursor='grab';
+    if(!moved){ showVesselInfo('own'); }
+    else{ ownT=nearestTOnPath(ownPath, ownPos.x, ownPos.y); ownDragging=false; }
+    e.stopPropagation();
+  });
+}
+
+function pathPos(path,t){
+  const n=path.length-1; const seg=Math.min(t,0.9999)*n; const i=Math.floor(seg); const f=seg-i;
+  const a=path[i], b=path[Math.min(i+1,n)];
+  return {x:a[0]+(b[0]-a[0])*f, y:a[1]+(b[1]-a[1])*f, ang:((Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI+90)%360+360)%360};
+}
+let simPaused=false, labelsVisible=true;
+let simSpeed=0.000028; // slow enough to inspect vessel movement and predicted tracks in the
+const nearAlertsShown=new Set(), hitAlertsShown=new Set();
+let selectedRiskVessel='josco', ukcZone='green';
+/* Two clean, distance-only thresholds - no "predictive/closing-rate" guessing that fired
+   alerts while vessels were still far away. NEAR_PX = "gần" (Chú ý). HIT_PX = "đụng/rất sát"
+   (Nguy hiểm cao) - tracked with its OWN guard, so reaching HIT_PX always alerts even if the
+   NEAR_PX alert already fired earlier for the same vessel. */
+/* thresholds only; CPA/TCPA use constant simulated courses and speeds. */
+const NEAR_PX=150, HIT_PX=30;
+
+function mapTick(now=performance.now()){
+  mapDelta=Math.min(50,Math.max(1,now-lastMapFrame)); lastMapFrame=now;
+  const frameStep=simSpeed*(mapDelta/(1000/60));
+  if(document.getElementById('screen-map').style.display==='flex'&&!window.pacsReplay){
+    window._vessels.forEach(v=>{
+      if(!simPaused&&!window.pacsReplay&&!window.pacsAisFailure)v.t += frameStep*((v.speed||7.2)/7.2)*(v.scenarioRate||1);
+      if(v.t>1) v.t=0;
+      const p=pathPos(v.path, v.t);
+      const g=document.getElementById('ves_'+v.id);
+      if(g){ g.setAttribute('transform',`translate(${p.x},${p.y}) rotate(${p.ang})`); }
+      const lblG=document.getElementById('lblg_'+v.id);
+      if(lblG){ lblG.setAttribute('transform',`translate(${p.x},${p.y})`); }
+      v.curPos=p;
+    });
+    // own ship keeps transiting the channel at the same speed as everyone else whenever the pilot
+    // isn't actively holding/dragging it - grabbing it always still works at any moment.
+    if(boarded && !ownDragging && !simPaused && !window.pacsReplay){
+      ownT += frameStep;
+      if(ownT>1) ownT=0;
+      const p=pathPos(ownPath, ownT);
+      ownPos={x:p.x,y:p.y};
+      ownHeading=p.ang;
+      updateNavigation(p.ang);
+    }
+    renderOwnShip();
+    if(boarded&&!window.pacsReplay){ evaluateProximity(); updateOwnZoneStatus(); }
+    if(now-(window._sidePanelLast||0)>100){ window._sidePanelLast=now; updateSidePanelLive(); }
+  }
+  requestAnimationFrame(mapTick);
+}
+
+/* Exactly two independent distance tiers, each with its own on/off guard so escalating from
+   "gần" to "đụng" for the SAME vessel always alerts again instead of being silently swallowed.
+   Every vessel is checked (not just the nearest one), so two ships close at once both get
+   flagged with their own correct name. Nothing fires unless a real vessel is genuinely inside
+   one of these two distances - being far away never triggers anything. */
+/* Only ONE trigger left for a real popup+beep: "sắp đụng" (about to actually collide). Being merely
+   "gần" no longer pops anything - it only tints the vessel amber on the map for quiet situational
+   awareness, so the app stays calm until something genuinely needs the pilot's attention. */
+function vesselCPA(v,heading,speed,horizon=.2){
+ const rad=a=>a*Math.PI/180,rx=(v.curPos.x-ownPos.x)/PXNM,ry=(v.curPos.y-ownPos.y)/PXNM,vx=(v.speed??7.2)*Math.sin(rad(v.curPos.ang))-speed*Math.sin(rad(heading)),vy=-(v.speed??7.2)*Math.cos(rad(v.curPos.ang))+speed*Math.cos(rad(heading)),vv=vx*vx+vy*vy,t=vv>1e-6?Math.max(0,Math.min(horizon,-(rx*vx+ry*vy)/vv)):0;
+ return {cpa:Math.hypot(rx+vx*t,ry+vy*t),tcpa:t*60};
+}
+function maneuverOptions(v){
+ const base=navState.sog,options=[];
+ for(const speed of [...new Set([base,Math.max(2,base-1.5),Math.max(2,base-3)])])for(const turn of [0,10]){
+  const heading=(ownHeading+turn+360)%360,rad=heading*Math.PI/180;let navigable=true,minUkc=Infinity;
+  for(let sec=0;sec<=90;sec+=15){const point={x:ownPos.x+Math.sin(rad)*speed*sec/3600*PXNM,y:ownPos.y-Math.cos(rad)*speed*sec/3600*PXNM},channel=channelAt(point.y);if(point.x<channel.left+10||point.x>channel.right-10)navigable=false;minUkc=Math.min(minUkc,computeUkcValue(point,speed))}
+  if(!navigable||minUkc<1)continue;
+  const predicted=vesselCPA(v,heading,speed,.025),others=(window._vessels||[]).filter(t=>t!==v&&t.curPos).map(t=>({old:vesselCPA(t,ownHeading,base,.025).cpa,next:vesselCPA(t,heading,speed,.025).cpa}));
+  if(others.some(t=>t.next<.2&&t.next<t.old-.02))continue;
+  options.push({speed,turn,heading,...predicted,score:predicted.cpa-Math.abs(turn)*.003-Math.abs(speed-base)*.005});
+ }
+ return options.sort((a,b)=>b.score-a.score);
+}
+function encounterAdvice(v,cpa,tcpa){
+ if(window.pacsAisFailure)return 'AIS chưa cập nhật. Khoảng cách theo vị trí cuối '+(Math.hypot(v.curPos.x-ownPos.x,v.curPos.y-ownPos.y)/PXNM).toFixed(2)+' NM; xác nhận radar trước khi chọn tốc độ / hướng.';
+ const delta=Math.abs(((v.curPos.ang-ownHeading+540)%360)-180),dx=v.curPos.x-ownPos.x,dy=v.curPos.y-ownPos.y,bearing=(Math.atan2(dx,-dy)*180/Math.PI+360)%360,relative=(bearing-ownHeading+360)%360;
+ const kind=delta>150?'Đối hướng':delta<30?(relative>90&&relative<270?'Tàu phía sau vượt lên':'Cùng hướng'):'Cắt ngang',options=maneuverOptions(v),baseline=vesselCPA(v,ownHeading,navState.sog,.025),best=options.find(o=>(o.cpa>baseline.cpa+.02||o.tcpa>baseline.tcpa+.3&&o.cpa>=baseline.cpa-.01)&&(o.turn!==0||o.speed<navState.sog-.1));
+ const lead=kind+' · CPA '+cpa.toFixed(2)+' NM'+(Number.isFinite(tcpa)&&tcpa>0?' / '+tcpa.toFixed(1)+' phút':'')+'. ';
+ if(!best)return lead+(kind==='Cắt ngang'?'Gọi tàu mục tiêu trên VHF, thống nhất thứ tự qua điểm cắt; tăng theo dõi radar và khoảng cách tới mép luồng.':kind==='Tàu phía sau vượt lên'?'Báo tàu phía sau hoãn vượt; xác nhận điểm vượt sau đoạn hẹp trên VHF.':kind==='Cùng hướng'?'Hoãn vượt; gọi tàu phía trước để thống nhất khoảng cách và thứ tự qua đoạn hẹp.':'Gọi tàu đối hướng trên VHF, thống nhất mạn tránh; tăng theo dõi radar và mép phải luồng.');
+ const action=(best.speed<navState.sog-.1?'Giảm '+navState.sog.toFixed(1)+' → '+best.speed.toFixed(1)+' kn':'Giữ '+navState.sog.toFixed(1)+' kn')+(best.turn===0?', giữ hướng':best.turn>0?', lệch phải 10°':', lệch trái 10°')+' ('+Math.round(best.heading)+'°). ';
+ return lead+action+'Cự ly thấp nhất 90 giây: '+best.cpa.toFixed(2)+' NM.';
+}
+function hullOverlap(v){
+ const rotate=(points,p,heading)=>{const rad=heading*Math.PI/180;return points.map(([x,y])=>({x:p.x+x*Math.cos(rad)-y*Math.sin(rad),y:p.y+x*Math.sin(rad)+y*Math.cos(rad)}))},a=rotate([[0,-27],[6,-5],[-6,-5]],typeof ownRenderPos!=='undefined'?ownRenderPos:ownPos,typeof renderedHeading!=='undefined'?renderedHeading:ownHeading),b=rotate([[0,-11],[7,9],[-7,9]],v.curPos,v.curPos.ang);
+ for(const polygon of [a,b])for(let i=0;i<polygon.length;i++){const p=polygon[i],q=polygon[(i+1)%polygon.length],axis={x:-(q.y-p.y),y:q.x-p.x},project=points=>points.map(t=>t.x*axis.x+t.y*axis.y),pa=project(a),pb=project(b);if(Math.max(...pa)<Math.min(...pb)||Math.max(...pb)<Math.min(...pa))return false}return true;
+}
+function evaluateProximity(){
+  if(!boarded) return;
+  let nearest=null, nearestDist=1e9;
+  window._vessels.forEach(v=>{
+    if(!v.curPos) return;
+    const d=Math.hypot(v.curPos.x-ownPos.x, v.curPos.y-ownPos.y);
+    if(d<nearestDist){ nearestDist=d; nearest=v; }
+    const visualOwn=typeof ownRenderPos!=='undefined'?ownRenderPos:ownPos,visualDistance=Math.hypot(v.curPos.x-visualOwn.x,v.curPos.y-visualOwn.y),isContact=visualDistance<=18||hullOverlap(v),isHit=d<=HIT_PX||isContact;
+    if(isContact&&!v.contactActive){v.contactActive=true;v.contactEpisode=(v.contactEpisode||0)+1;showAlert('Nguy hiểm cao','Nguy cơ tức thời - '+v.name,(window.pacsAisFailure?'Theo vị trí AIS cuối · ':'')+'Tàu '+v.name+' · Cự ly hiển thị '+(visualDistance/PXNM).toFixed(2)+' NM. Báo động buồng lái; gọi ngay '+v.name+' trên VHF để xác nhận ý định tránh nhau. Khi nhìn thấy tàu và còn nghi ngờ ý định: phát ít nhất 5 tiếng còi ngắn, nhanh.','collision-contact-'+v.contactEpisode+'-'+v.id)}else if(!isContact&&visualDistance>26&&!hullOverlap(v))v.contactActive=false;
+    const rad=a=>a*Math.PI/180,rx=(v.curPos.x-ownPos.x)/PXNM,ry=(v.curPos.y-ownPos.y)/PXNM;
+    const vx=(v.speed||7.2)*Math.sin(rad(v.curPos.ang))-navState.sog*Math.sin(rad(ownHeading)),vy=-(v.speed||7.2)*Math.cos(rad(v.curPos.ang))+navState.sog*Math.cos(rad(ownHeading));
+    const vv=vx*vx+vy*vy,tcpa=vv>1e-6?-(rx*vx+ry*vy)/vv*60:Infinity,cpa=tcpa>0?Math.hypot(rx+vx*tcpa/60,ry+vy*tcpa/60):Math.hypot(rx,ry);
+    v.predictedCpa=window.pacsAisFailure?NaN:cpa;v.predictedTcpa=window.pacsAisFailure?NaN:tcpa;
+    if(!isContact&&!window.pacsAisFailure&&tcpa>0&&tcpa<=10+1e-9&&cpa<=.2+1e-9&&!nearAlertsShown.has(v.id)){nearAlertsShown.add(v.id);showAlert('Chú ý','Nguy cơ gặp tàu phía trước - '+v.name,encounterAdvice(v,cpa,tcpa),'collision-predict-'+v.id)}
+    if(tcpa<=0||tcpa>10+1e-9||cpa>.2+1e-9)nearAlertsShown.delete(v.id);
+    const isNear = d<NEAR_PX;
+    const g=document.getElementById('ves_'+v.id);
+    const poly=g&&g.querySelector('polygon');
+    if(poly) poly.setAttribute('fill', isHit?'#DC2626':(isNear?'#D97706':'#2563EB'));
+    if(isHit&&!isContact){
+      if(!hitAlertsShown.has(v.id)){ hitAlertsShown.add(v.id); triggerConflictAlert(v, (d/PXNM).toFixed(2), true); }
+    } else {
+      hitAlertsShown.delete(v.id);
+    }
+  });
+  if(nearest){
+    const cpaNm=Math.max(.03,nearestDist/PXNM).toFixed(2);
+    updateSidePanelAis(nearest, Number.isFinite(nearest.predictedCpa)?nearest.predictedCpa.toFixed(2):cpaNm, nearestDist<HIT_PX);const tcp=document.getElementById('sp-ais-tcpa');if(tcp)tcp.textContent=Number.isFinite(nearest.predictedTcpa)&&nearest.predictedTcpa>0?nearest.predictedTcpa.toFixed(1)+' phút':'Đang rời xa / không xác định';
+  }
+}
+function checkOwnProximity(){ evaluateProximity(); updateOwnZoneStatus(); }
+
+
+let alertCounter=0;
+let alertVisibleSince=0, alertAutoHideTimer=null;
+function levelIcon(level){
+  return level==='Nguy hiểm cao'
+    ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 21h20L12 2z"/></svg>'
+    : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>';
+}
+function beep(){
+  try{
+    const ctx = window._audioCtx || (window._audioCtx = new (window.AudioContext||window.webkitAudioContext)());
+    if(ctx.state==='suspended') ctx.resume();
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.value=880; g.gain.value=0.05;
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.18);
+  }catch(e){}
+}
+/* Alerts are grouped by CATEGORY (collision / weather / ukc). Two DIFFERENT categories happening at
+   the same time are combined into one card (e.g. wind + a ship nearby). Multiple events of the SAME
+   category (e.g. a second, then a third nearby ship) simply REPLACE the card with the newest one,
+   instead of stacking into a wall of text - every event still beeps and is logged in Alert Center,
+   nothing is silently dropped, it just doesn't pile up visually. */
+const alertPolicy=new PacsAlertPolicy(60000,60000);window.pacsAlertPolicy=alertPolicy;
+function showAlert(level,title,bodyHtml,tag){
+ const category=tag.split('-')[0],target=(window._vessels||[]).find(v=>tag.endsWith('-'+v.id));
+ const item=alertPolicy.offer({level,title,bodyHtml,tag,category,immediate:tag.startsWith('collision-contact-'),rank:target?.predictedTcpa??Infinity});if(item)presentAlert(item);
+}
+function renderAdvice(element,text){
+ element.replaceChildren();
+ const sentences=String(text).split(/(?<=\.)\s+/),first=sentences[0]||'',hasContext=/CPA|Cự ly hiển thị|AIS chưa cập nhật/.test(first);
+ if(hasContext){const context=document.createElement('div');context.className='advice-context';context.textContent=sentences.shift();element.appendChild(context)}
+ sentences.forEach((sentence,i)=>{const line=document.createElement('div');line.className=i===0?'advice-action':'advice-step';line.textContent=sentence;element.appendChild(line)});
+}
+function presentAlert(item){
+ const {level,title,bodyHtml,tag,category:cat}=item,card=document.getElementById('alertCard'),bodyEl=card.querySelector('.alert-body'),id='a'+(++alertCounter),detail=bodyHtml.replace(/<[^>]+>/g,'');
+ card.dataset.level=level;card.querySelector('.alert-level').innerHTML=levelIcon(level)+level;renderAdvice(bodyEl,detail);bodyEl.dataset.cats=cat;card.classList.remove('hidden');alertVisibleSince=Date.now();
+ window.pacsLastAdvice=detail;window.pacsLastCategory=cat;const target=(window._vessels||[]).find(v=>tag.endsWith('-'+v.id));if(target)selectedRiskVessel=target.id;window.pacsActiveAlertId=id;window.pacsActiveAlertTitle=title;
+ let heading=card.querySelector('.alert-title');if(!heading){heading=document.createElement('div');heading.className='alert-title';bodyEl.before(heading)}heading.textContent=title;
+ const targetButton=card.querySelector('.alert-actions button');if(targetButton)targetButton.hidden=cat!=='collision';clearTimeout(alertAutoHideTimer);
+ beep();if(parent!==window)parent.postMessage({type:'pacs-alert',category:cat,level,title,detail:detail.slice(0,700),recommendation:detail.slice(0,700),tag},location.origin);
+ alerts.unshift({id,level,title,detail,status:'new',time:nowStr()});renderAlerts(currentFilter);renderFeedback();
+}
+function alertStillRelevant(item){
+ if(item.tag==='system-ais')return !!window.pacsAisFailure;if(item.tag==='ukc-water')return !!window.pacsLowWater;if(item.category==='weather'){const kind=item.tag.slice(8);return !['wind','crosswind','current','visibility','combined'].includes(kind)||window.pacsWeather===kind}if(item.category!=='collision')return true;if(window.pacsAisFailure&&!item.immediate)return false;
+ const target=(window._vessels||[]).find(v=>item.tag.endsWith('-'+v.id));if(!target)return true;if(item.immediate)return Math.hypot(target.curPos.x-ownPos.x,target.curPos.y-ownPos.y)<=18||hullOverlap(target);
+ if(item.tag.startsWith('collision-predict-'))return target.predictedTcpa>0&&target.predictedTcpa<=10+1e-9&&target.predictedCpa<=.2+1e-9;
+ return !target.curPos||Math.hypot(target.curPos.x-ownPos.x,target.curPos.y-ownPos.y)/PXNM<.3;
+}
+setInterval(()=>{if(window.pacsReplay)return;const item=alertPolicy.next(Date.now(),alertStillRelevant);if(item)presentAlert(item);const pace=document.getElementById('alertPace');if(pace){const seconds=alertPolicy.lastAt===null?0:Math.max(0,Math.ceil((alertPolicy.lastAt+60000-Date.now())/1000));pace.textContent=(seconds?'Thời gian đọc: '+seconds+' giây':'Đã đủ thời gian đọc')+(alertPolicy.queue.size?' · '+alertPolicy.queue.size+' nhóm đang chờ':'')}},1000);
+function triggerConflictAlert(v,cpaNm,isHit){
+ const prefix=window.pacsAisFailure?'Khoảng cách theo vị trí AIS cuối. ':'';
+ showAlert(isHit?'Nguy hiểm cao':'Chú ý',(isHit?'Tàu rất sát - ':'Tàu gần - ')+v.name,prefix+encounterAdvice(v,Number(v.predictedCpa??cpaNm),v.predictedTcpa),'collision-'+v.id);
+}
+function triggerWeatherAlert(zone,condition,recommendation){
+  showAlert('Chú ý','Gió tăng đột ngột - '+zone, '<b>'+zone+'</b>: '+condition+' - '+recommendation, 'weather-'+zone);
+  renderAlerts(currentFilter);
+}
+function nowStr(){ return simTimeStr(); }
+/* ---------- Unified simulated clock (fixes the "10:32 vs 13:xx" mismatch) ---------- */
+let simSeconds = 10*3600 + 32*60 + 7; // 10:32:07
+function simTimeStr(){ const h=Math.floor(simSeconds/3600)%24, m=Math.floor(simSeconds/60)%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+function simTimeStrFull(){ const h=Math.floor(simSeconds/3600)%24, m=Math.floor(simSeconds/60)%60, s=simSeconds%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+function tickSimClock(){
+  if(window.pacsReplay)return;
+  simSeconds += 4; // simulated time runs faster than real time, but every part of the UI reads the SAME clock
+  const t=simTimeStr();
+  const el1=document.getElementById('topClock'); if(el1) el1.textContent=t;
+  const el2=document.getElementById('sp-time'); if(el2) el2.textContent=t;
+  const el3=document.getElementById('mapDatechip'); if(el3) el3.innerHTML=(window.pacsDate||'20/08/2026')+' &nbsp;'+simTimeStrFull()+' &nbsp;';
+}
+setInterval(tickSimClock, 1000);
+
+/* toggle layers */
+function toggleLayer(el0){
+  el0.classList.toggle('on');
+  const layer=document.getElementById(el0.dataset.layer);
+  if(layer) layer.style.display = el0.classList.contains('on') ? '' : 'none';
+}
+
+/* pan */
+function wirePan(){
+  const vp=document.getElementById('mapViewport'),svg=document.getElementById('mapSvg');
+  let scale=1,curX=0,curY=0,dragging=false,startX=0,startY=0,gesture=null;
+  const points=new Map();
+  function area(){const panel=document.getElementById('sidePanel');return {w:Math.max(100,vp.clientWidth-(panel?.hidden?0:(panel?.offsetWidth||220))),h:Math.max(100,vp.clientHeight)}}
+  function fitScale(){const a=area();return Math.min(3,(a.w-24)/MAP_W)}
+  function clamp(){const a=area();curX=MAP_W*scale<a.w?(a.w-MAP_W*scale)/2:Math.max(a.w-MAP_W*scale,Math.min(0,curX));curY=MAP_H*scale<a.h?(a.h-MAP_H*scale)/2:Math.max(a.h-MAP_H*scale,Math.min(0,curY))}
+  function apply(){clamp();svg.style.transform=`translate(${curX}px,${curY}px) scale(${scale})`;document.getElementById('mapZoomLabel').textContent=Math.round(scale*100)+'%';document.getElementById('mapZoomIn').disabled=scale>=3;document.getElementById('mapZoomOut').disabled=scale<=fitScale()+.0001}
+  function zoom(next,x,y){const old=scale;scale=Math.max(fitScale(),Math.min(3,next));curX=x-(x-curX)*scale/old;curY=y-(y-curY)*scale/old;apply()}
+  function center(x=ownPos.x,y=ownPos.y){const a=area();curX=a.w/2-x*scale;curY=a.h/2-y*scale;apply()}
+  function fit(){const a=area();scale=Math.min(3,(a.w-24)/MAP_W);curX=(a.w-MAP_W*scale)/2;curY=0;apply();document.querySelector('.map-demo-tag').textContent='Vừa chiều ngang · Kéo dọc để xem hết luồng · 18 tàu'}
+  function local(e){const r=vp.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}}
+  function excluded(target){return target.closest('button,input,select,textarea,summary,details,.map-tools,.scenario-panel,#ownShip,.alert-card,.sheet-overlay,.layers-fab,.panel-fab-stack,.side-panel,.bell-fab,.vinfo-card,.map-navigation,.map-targets,[id^=ves_],[id^=lblg_]')}
+  document.getElementById('mapZoomIn').onclick=()=>{const a=area();zoom(scale*1.3,a.w/2,a.h/2)};
+  document.getElementById('mapZoomOut').onclick=()=>{const a=area();zoom(scale/1.3,a.w/2,a.h/2)};
+  document.getElementById('mapFit').onclick=fit;document.getElementById('mapCenter').onclick=()=>center();
+  vp.addEventListener('wheel',e=>{if(e.target.closest('button,input,select,textarea,summary,.map-tools,.scenario-panel,.side-panel,.map-targets,.sheet-overlay,.vinfo-card,.alert-card'))return;e.preventDefault();const p=local(e);zoom(scale*Math.exp(-e.deltaY*.0015),p.x,p.y)},{passive:false});
+  vp.addEventListener('pointerdown',e=>{if(excluded(e.target))return;points.set(e.pointerId,local(e));vp.setPointerCapture(e.pointerId);if(points.size===2){const [a,b]=[...points.values()];gesture={distance:Math.hypot(a.x-b.x,a.y-b.y),scale,x:curX,y:curY,mx:(a.x+b.x)/2,my:(a.y+b.y)/2};dragging=false}else{dragging=true;startX=e.clientX-curX;startY=e.clientY-curY}vp.classList.add('grabbing')});
+  vp.addEventListener('pointermove',e=>{if(!points.has(e.pointerId))return;points.set(e.pointerId,local(e));if(points.size===2&&gesture){const [a,b]=[...points.values()],next=Math.max(fitScale(),Math.min(3,gesture.scale*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(1,gesture.distance)));scale=next;curX=(a.x+b.x)/2-(gesture.mx-gesture.x)*next/gesture.scale;curY=(a.y+b.y)/2-(gesture.my-gesture.y)*next/gesture.scale;apply()}else if(dragging){curX=e.clientX-startX;curY=e.clientY-startY;apply()}});
+  function end(e){points.delete(e.pointerId);gesture=null;dragging=false;vp.classList.remove('grabbing');if(points.size===1){const p=[...points.values()][0],r=vp.getBoundingClientRect();startX=p.x+r.left-curX;startY=p.y+r.top-curY;dragging=true}}
+  vp.addEventListener('pointerup',end);vp.addEventListener('pointercancel',end);vp.addEventListener('lostpointercapture',end);
+  window.pacsMapView={fit,center,zoomToTarget(v){scale=Math.max(.8,scale);center(v.curPos.x,v.curPos.y)}};
+  document.getElementById('mapPause').onclick=e=>{simPaused=!simPaused;e.currentTarget.textContent=simPaused?'Tiếp tục':'Tạm dừng';e.currentTarget.setAttribute('aria-pressed',String(simPaused))};
+  document.getElementById('mapLabels').onclick=e=>{labelsVisible=!labelsVisible;window._vessels.forEach(v=>{document.getElementById('lblg_'+v.id).style.display=labelsVisible?'':'none'});e.currentTarget.textContent=labelsVisible?'Ẩn tên tàu':'Hiện tên tàu';e.currentTarget.setAttribute('aria-pressed',String(labelsVisible))};
+  const list=document.getElementById('mapTargetList'),search=document.getElementById('mapTargetSearch'),panel=document.getElementById('mapTargetPanel');
+  function renderTargets(){list.replaceChildren();const rows=window._vessels.filter(v=>v.name.toLowerCase().includes(search.value.trim().toLowerCase()));rows.forEach(v=>{const button=document.createElement('button'),name=document.createElement('b'),meta=document.createElement('small');name.textContent=v.name;meta.textContent=v.data.type+' · '+v.data.dest;button.append(name,meta);button.onclick=()=>{if(v.curPos)window.pacsMapView.zoomToTarget(v);selectedRiskVessel=v.id;showVesselInfo(v.id);panel.hidden=true};list.appendChild(button)});if(!rows.length)list.textContent='Không tìm thấy tàu.'}
+  document.getElementById('mapTargets').onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden){renderTargets();search.focus()}};search.oninput=renderTargets;
+  vp.addEventListener('keydown',e=>{if(e.target!==vp)return;const a=area();if(e.key==='+'||e.key==='=')zoom(scale*1.3,a.w/2,a.h/2);else if(e.key==='-')zoom(scale/1.3,a.w/2,a.h/2);else if(e.key==='0')fit();else return;e.preventDefault()});vp.tabIndex=0;vp.setAttribute('aria-label','Bản đồ: dấu cộng để phóng to, dấu trừ thu nhỏ, 0 xem toàn luồng');
+  let initialized=false;const observer=new ResizeObserver(()=>{if(!vp.clientWidth||!vp.clientHeight)return;if(!initialized){initialized=true;new URLSearchParams(location.search).get('mode')==='overview'?fit():center()}else apply()});observer.observe(vp);
+  center();
+}
+
+/* side panel (detailed, like reference image 1) */
+function buildSidePanel(){
+  document.getElementById('sidePanel').innerHTML = `
+    <div class="sp-block"><div class="sp-title">Local Time</div><div class="sp-val mono" id="sp-time">10:32</div></div>
+    <div class="sp-block"><div class="sp-title">Source</div><div class="sp-val" style="font-size:11px;">AIS ·</div></div>
+    <div class="sp-block">
+      <div class="sp-title">GNSS Diagnostics</div>
+      <div class="sp-sub">HPE: &lt;10m (RAIM: No)</div>
+    </div>
+    <div class="sp-block"><div class="sp-title">Satellites</div><div class="sp-val" style="font-size:12px;">14 in view</div></div>
+    <div class="sp-block">
+      <div class="sp-title">Docking</div>
+      <div class="sp-row"><span class="sp-sub">Fore Range</span><span class="sp-val" id="sp-dock-fore" style="font-size:11px;">1.28 NM</span></div>
+      <div class="sp-row"><span class="sp-sub">Angle</span><span class="sp-val" id="sp-dock-angle" style="font-size:11px;">0.0°</span></div>
+      <div class="sp-row"><span class="sp-sub">Aft Range</span><span class="sp-val" id="sp-dock-aft" style="font-size:11px;">1.41 NM</span></div>
+    </div>
+    <div class="sp-block">
+      <div class="sp-title">Vessel Motion</div>
+      <div class="sp-row"><span class="sp-sub">Bow</span><span class="sp-val" id="sp-bow" style="font-size:11px;">0.56 kn</span></div>
+      <div class="sp-row"><span class="sp-sub">Stern</span><span class="sp-val" id="sp-stern" style="font-size:11px;">1.11 kn</span></div>
+    </div>
+    <div class="sp-block">
+      <div class="sp-title">Cursor</div>
+      <div class="sp-sub mono" id="sp-lat">10°20'43.69"N</div>
+      <div class="sp-sub mono" id="sp-lon">107°05'06.38"E</div>
+      <div class="sp-row"><span class="sp-sub">BRG</span><span class="sp-val" id="sp-brg" style="font-size:10.5px;">346°T</span></div>
+      <div class="sp-row"><span class="sp-sub">Range</span><span class="sp-val" id="sp-range" style="font-size:10.5px;">3.98 NM</span></div>
+    </div>
+    <div class="sp-block ais" id="sp-ais">
+      <div class="sp-title">AIS Target</div>
+      <div class="sp-val" id="sp-ais-name" style="font-size:12px;">JOSCO JANE</div>
+      <div class="sp-row"><span class="sp-sub">CPA</span><span class="sp-val" style="font-size:11px;color:var(--danger);" id="sp-ais-cpa">-- NM</span></div>
+      <div class="sp-row"><span class="sp-sub">TCPA</span><span class="sp-val" style="font-size:11px;color:var(--danger);" id="sp-ais-tcpa">--:--</span></div>
+    </div>
+    <div class="sp-block">
+      <div class="sp-title">XTD Bow/Stern</div>
+      <div class="sp-row"><span class="sp-sub">Max-Port</span><span class="sp-val" style="font-size:10.5px;">175 m</span></div>
+      <div class="sp-row"><span class="sp-sub">Max-Stbd</span><span class="sp-val" style="font-size:10.5px;">175 m</span></div>
+    </div>
+  `;
+}
+function updateSidePanelAis(v, cpaNm, near){
+  const block=document.getElementById('sp-ais');
+  document.getElementById('sp-ais-name').textContent=v.name;
+  document.getElementById('sp-ais-cpa').textContent=cpaNm+' NM';
+  const tcpaEl=document.getElementById('sp-ais-tcpa');
+  if(near){
+    block.classList.add('danger-row');
+    tcpaEl.textContent='< 05:00';
+  } else {
+    block.classList.remove('danger-row');
+    tcpaEl.textContent='--:--';
+  }
+}
+function updateSidePanelLive(){
+  document.getElementById('sp-bow').textContent=(.52+(ownPos.y%37)/100).toFixed(2)+' kn';
+  document.getElementById('sp-stern').textContent=(1.05+(ownPos.x%42)/100).toFixed(2)+' kn';
+  document.getElementById('sp-dock-fore').textContent=Math.max(.05,Math.abs(ownPos.y-Y_GEM)/PXNM).toFixed(2)+' NM';
+  document.getElementById('sp-dock-aft').textContent=Math.max(.05,Math.abs(Y_P0-ownPos.y)/PXNM).toFixed(2)+' NM';
+  const dockAngle=signedHeadingDelta(180,ownHeading);
+  document.getElementById('sp-dock-angle').textContent=Math.abs(dockAngle).toFixed(1)+'° '+(Math.abs(dockAngle)<.1?'Aligned':(dockAngle<0?'Port':'Starboard'));
+  const dms=(v,h)=>{const d=Math.floor(v),m=(v-d)*60,mi=Math.floor(m),s=(m-mi)*60;return d+'°'+String(mi).padStart(2,'0')+"'"+s.toFixed(2).padStart(5,'0')+'"'+h;};
+  document.getElementById('sp-lat').textContent=dms(LAT_T-ownPos.y/(60*PXNM),'N');
+  document.getElementById('sp-lon').textContent=dms(LON0+ownPos.x/(60*COSL*PXNM),'E');
+  const v=window._vessels&&window._vessels.find(x=>x.id===selectedRiskVessel);if(v&&v.curPos){const dx=v.curPos.x-ownPos.x,dy=v.curPos.y-ownPos.y;document.getElementById('sp-brg').textContent=(Math.round((Math.atan2(dx,-dy)*180/Math.PI+360)%360))+'°T';document.getElementById('sp-range').textContent=(Math.hypot(dx,dy)/PXNM).toFixed(2)+' NM';}
+}
+/* The displayed UKC number is a CONTINUOUS function of position (closer to the hazard zone = lower
+   reading), so moving anywhere - not just crossing the red/green line - visibly changes it. The
+   red/green classification below still uses hysteresis so alerts don't flicker at the boundary. */
+function ukcSnapshot(pos,speed=navState.sog){
+ const nd=Math.hypot((pos.x-UKC_ZONE.cx)/UKC_ZONE.rx,(pos.y-UKC_ZONE.cy)/UKC_ZONE.ry);
+ // Smooth depth surface retained from PACS chart geometry; never switch depths by alert color.
+ const depth=12.5+1.7*Math.min(1,nd/3);
+ const date=window.pacsTripDate||'2026-10-17',dayNumber=Math.floor(Date.parse(date+'T00:00:00Z')/86400000),day=((dayNumber%14)+14)%14;
+ const m=simSeconds/60,water=1.9+1.55*Math.cos((m-930-day*42)*2*Math.PI/745)+.18*Math.sin(m*Math.PI/1440)-(window.pacsLowWater?.9:0);
+ return PacsUkc.calculate({depth,water,draft:window.pacsDraft||13.4,speed});
+}
+function computeUkcValue(pos,speed=navState.sog){return ukcSnapshot(pos,speed).ukc;}
+function updateOwnZoneStatus(){
+  if(!window.pacsTripDate&&!window.pacsReplay)return;
+  currentUkcValue = computeUkcValue(ownPos);
+  if(document.getElementById('ukcSheet') && document.getElementById('ukcSheet').classList.contains('show')) renderUkcSheet();
+  if(document.getElementById('riskSheet') && document.getElementById('riskSheet').classList.contains('show')) renderRiskSheet();
+  // hysteresis: once inside the red zone, must move noticeably further out before it flips back to
+  // green - this stops the alert (and ring color) from flickering when the ship sits right on the edge
+  const inRed = currentUkcValue<(ukcZone==='red'?1.1:1);
+  const next = inRed ? 'red' : 'green';
+  if(next===ukcZone) return;
+  ukcZone=next;
+  setUkcRing(next);
+  if(next==='red'&&!window.pacsReplay){
+    showAlert('Nguy hiểm cao','Vùng UKC hạn chế','Đang đi vào <b>vùng UKC hạn chế</b> gần bờ - UKC dự báo <b>'+currentUkcValue.toFixed(2)+' m</b>, thấp hơn ngưỡng vận hành. Giảm tốc và cân nhắc chờ nước.','ukc-zone');
+  }
+}
+/* Own-ship danger indicator is ONE unified signal (not two rings that can disagree) - red the moment
+   EITHER a vessel is critically close OR the ship enters the UKC hazard zone, green otherwise. */
+/* The ring drawn around own ship reflects UKC status ONLY (red only inside the hazard zone, green
+   everywhere else) - collision risk is communicated separately (alert popup + the other vessel's own
+   color on the map), so the ring never shows red for a reason unrelated to UKC. */
+let dangerUkc=false;
+function refreshOwnRings(){
+  const c = dangerUkc ? '#DC2626' : '#16A34A';
+  ['ownCpaFill','ownCpaRing','ownUkcFill','ownUkcRing'].forEach(id=>{const e=document.getElementById(id); if(e) e.setAttribute(id.includes('Fill')?'fill':'stroke', c);});
+  const lab=document.getElementById('ownSafetyLabel'); if(lab){ lab.setAttribute('fill',c); lab.textContent = dangerUkc ? 'UKC HẠN CHẾ' : 'UKC ĐỦ'; }
+}
+function setUkcRing(state){ dangerUkc = state==='red'; refreshOwnRings(); }
+function setCollisionRing(state){ /* collision risk no longer drives the ship ring - see vessel tint + alert card + AIS panel instead */ }
+function renderRiskSheet(){
+  const sheet=document.getElementById('riskSheet'); if(!sheet) return;
+  const advice=sheet.querySelector('.rec-card .rt');if(advice)renderAdvice(advice,window.pacsLastAdvice||'Chọn một cảnh báo để xem khuyến nghị theo tình huống.');
+  const rows=sheet.querySelectorAll('.factor-row');
+  const traffic=rows[0]?.querySelector('.fv'),target=(window._vessels||[]).find(v=>v.id===selectedRiskVessel);if(traffic)traffic.textContent=window.pacsAisFailure?'AIS gián đoạn':target&&Number.isFinite(target.predictedCpa)?'CPA '+target.predictedCpa.toFixed(2)+' NM':'Theo dõi';
+  const ukcRow=rows[2]; const red = ukcZone==='red';const weather=rows[1]?.querySelector('.fv');if(weather)weather.textContent=window.pacsWeather==='crosswind'?'Gió ngang 24 kn':['wind','combined'].includes(window.pacsWeather)?'Gió giật 23–30 kn':'Theo dõi';const current=rows[3]?.querySelector('.fv');if(current)current.textContent=window.pacsWeather==='current'?'Dòng ngang 2,2 kn':'Ổn định';
+  if(ukcRow){
+    ukcRow.querySelector('.fv').textContent = currentUkcValue.toFixed(2)+' m';
+    ukcRow.querySelector('.fv').style.color = red?'var(--danger)':'var(--safe)';
+    ukcRow.querySelector('.factor-fill').style.width = red?'85%':'20%';
+    ukcRow.querySelector('.factor-fill').style.background = red?'var(--danger)':'var(--safe)';
+  }
+}
+function renderUkcSheet(){
+  const sheet=document.getElementById('ukcSheet'); if(!sheet) return;
+  const red = ukcZone==='red';
+  const color = red ? 'var(--danger)' : 'var(--safe)';
+  sheet.querySelector('.ukc-big').style.color=color;
+  sheet.querySelector('.ukc-big').textContent=currentUkcValue.toFixed(2)+' m';
+  sheet.querySelector('.ukc-status').style.color=color;
+  sheet.querySelector('.ukc-status').textContent = red ? 'Vùng UKC hạn chế - cần thận trọng' : 'UKC đủ - an toàn';
+  const state=ukcSnapshot(ownPos);
+  currentUkcValue=state.ukc;
+  sheet.querySelector('.ukc-big').textContent=state.ukc.toFixed(2)+' m';
+  const rows=sheet.querySelectorAll('.ukc-break-row .val');
+  [state.depth,state.water,-state.draft,-state.squat,-state.allowance].forEach((v,i)=>rows[i].textContent=(i===1&&v>=0?'+':'')+v.toFixed(3)+' m');
+  sheet.querySelector('.ukc-speed').textContent='Tốc độ tính squat: '+state.speed.toFixed(2)+' kn · SOG thay cho STW';
+}
+
+/* vessel click info card (like reference image 2) */
+function showVesselInfo(id){
+  const card=document.getElementById('vinfoCard');let rows,title;
+  const coordinate=(pos)=>((LAT_T-pos.y/(60*PXNM)).toFixed(5)+' N / '+(LON0+pos.x/(60*COSL*PXNM)).toFixed(5)+' E');
+  if(id==='own'){
+    title=window.pacsShipName||'TÀU CỦA TÔI';
+    rows=[['Tên tàu',title],['Nguồn','PACS'],['Vị trí',coordinate(ownPos)],['Hướng tàu',((ownHeading%360+360)%360).toFixed(1)+'°T'],['Tốc độ',navState.sog.toFixed(1)+' kn']];
+  }else{
+    const v=window._vessels?.find(x=>x.id===id)||window._vessels?.find(x=>x.curPos);if(!v){toast('Chưa có mục tiêu AIS.');return;}id=v.id;selectedRiskVessel=id;const d=v.data,p=v.curPos||pathPos(v.path,v.t),dist=Math.hypot(p.x-ownPos.x,p.y-ownPos.y),bearing=(Math.atan2(p.x-ownPos.x,-(p.y-ownPos.y))*180/Math.PI+360)%360;title=v.name;
+    rows=[['Tên tàu',v.name],['Nguồn','Mục tiêu'],['Loại tàu',d.type],['Vị trí',coordinate(p)],['Phương vị',bearing.toFixed(1)+'°T'],['Khoảng cách hiện tại',(dist/PXNM).toFixed(2)+' NM'],['Hướng tàu',p.ang.toFixed(1)+'°T'],['Tốc độ',(v.speed||7.2).toFixed(1)+' kn'],['Kích thước',d.size],['Mớn nước',d.draft],['Điểm đến',d.dest]];
+  }
+  const safe=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  document.getElementById('vinfoName').textContent=title;document.getElementById('vinfoBody').innerHTML=rows.map(r=>'<div class="vinfo-row"><span>'+safe(r[0])+'</span><span>'+safe(r[1])+'</span></div>').join('');
+  if(id!=='own'){const button=document.createElement('button');button.className='vinfo-board';button.textContent='Theo dõi mục tiêu';button.onclick=()=>{closeVinfo();openRiskCard()};document.getElementById('vinfoBody').appendChild(button)}card.classList.add('show');
+}
+
+function closeVinfo(){ document.getElementById('vinfoCard').classList.remove('show'); }
+function openConflictSelected(){clearTimeout(alertAutoHideTimer);document.getElementById('alertCard').classList.add('hidden');showVesselInfo(selectedRiskVessel);}
+
+/* sheets */
+function openEnv(){ document.getElementById('envSheet').classList.add('show'); startEcg(); }
+function openZone(zone){
+  showPanel('screen-weather');
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.toggle('active',n.dataset.target==='screen-weather'));
+  openWeatherZone(zone);
+}
+function openUkcPanel(){ document.getElementById('ukcSheet').classList.add('show'); renderUkcSheet(); }
+function openRiskCard(){clearTimeout(alertAutoHideTimer);document.getElementById('alertCard').classList.add('hidden');document.getElementById('riskSheet').classList.add('show');renderRiskSheet();}
+function closeSheet(id){ document.getElementById(id).classList.remove('show'); if(id==='envSheet') stopEcg();if(id==='riskSheet')window.pacsAlertPolicy?.acknowledge(); }
+
+/* live ECG-style graphs */
+let ecgData={wind:[],current:[],water:[]}; let ecgInterval=null;
+function startEcg(){
+  if(ecgInterval) return;
+  for(let i=0;i<60;i++){ ecgData.wind.push(12+Math.sin(i/5)*3+Math.random()*1.5); ecgData.current.push(1.3+Math.sin(i/6)*0.4+Math.random()*0.2); ecgData.water.push((window.pacsLowWater?1.6:2.5)+Math.sin(i/8)*0.5+Math.random()*0.1); }
+  drawEcg();
+  ecgInterval=setInterval(()=>{
+    ecgData.wind.push(Math.max(4,(window.pacsWeather==='wind'||window.pacsWeather==='combined'?26:window.pacsWeather==='crosswind'?24:12)+Math.sin(Date.now()/3000)*4+Math.random()*2));
+    ecgData.current.push(Math.max(0.2,(window.pacsWeather==='current'?2.2:1.3)+Math.sin(Date.now()/4000)*0.5+Math.random()*0.2));
+    ecgData.water.push(Math.max(0.5,2.5+Math.sin(Date.now()/5000)*0.6+Math.random()*0.1));
+    ecgData.wind.shift(); ecgData.current.shift(); ecgData.water.shift();
+    drawEcg();
+  },400);
+}
+function stopEcg(){ clearInterval(ecgInterval); ecgInterval=null; }
+function toPoly(arr,max){ return arr.map((v,i)=>`${(i/(arr.length-1)*300).toFixed(1)},${(48-(v/max*44)).toFixed(1)}`).join(' '); }
+function drawEcg(){
+  document.getElementById('ecgWind').setAttribute('points', toPoly(ecgData.wind,25));
+  document.getElementById('ecgCurrent').setAttribute('points', toPoly(ecgData.current,3));
+  document.getElementById('ecgWater').setAttribute('points', toPoly(ecgData.water,4));
+  document.getElementById('ecgWindNow').textContent=ecgData.wind[ecgData.wind.length-1].toFixed(1);
+  document.getElementById('ecgCurrentNow').textContent=ecgData.current[ecgData.current.length-1].toFixed(1);
+  document.getElementById('ecgWaterNow').textContent=ecgData.water[ecgData.water.length-1].toFixed(1);
+}
+
+/* ---------- Weather by zone ---------- */
+let wxInterval=null, wxData={wind:[],current:[],water:[]}, wxProfile={wind:14,current:1.5,water:2.6}, weatherDay='21/08';
+const wxProfiles={
+  'Phao số 0':{wind:14,current:1.5,water:2.6},'Gành Rái':{wind:22,current:1.7,water:2.5},
+  'Cái Mép':{wind:12,current:1.3,water:2.4},'Sông Thị Vải':{wind:10,current:1.1,water:2.2},'Vũng Tàu':{wind:15,current:1.6,water:2.6}
+};
+function openWeatherZone(zone){
+  const base=wxProfiles[zone]||wxProfiles['Phao số 0']; const dayAdjust=weatherDay==='20/08'?-1:(weatherDay==='22/08'?1.5:0); wxProfile={wind:base.wind+dayAdjust,current:base.current+(dayAdjust*.05),water:base.water-(dayAdjust*.04)};
+  document.getElementById('weatherList').style.display='none'; document.getElementById('weatherDetail').style.display='block';
+  document.getElementById('wxZoneTitle').textContent=zone+' - '+weatherDay; document.getElementById('wxSensorNote').textContent='Nguồn: trạm '+zone+' · AIS meteo / edge sensor · dữ liệu ngày '+weatherDay+' (mô phỏng cập nhật liên tục)';
+  wxData={wind:[],current:[],water:[]}; for(let i=0;i<52;i++){wxData.wind.push(wxProfile.wind+Math.sin(i/6)*1.3+(Math.random()-.5)*1.1);wxData.current.push(wxProfile.current+Math.sin(i/7)*.16+(Math.random()-.5)*.12);wxData.water.push(wxProfile.water+Math.sin(i/9)*.12+(Math.random()-.5)*.08);} drawWeatherLive();
+  clearInterval(wxInterval); wxInterval=setInterval(()=>{wxData.wind.push(Math.max(1,wxProfile.wind+Math.sin(Date.now()/2400)*1.8+(Math.random()-.5)*1.1));wxData.current.push(Math.max(.1,wxProfile.current+Math.sin(Date.now()/3300)*.22+(Math.random()-.5)*.1));wxData.water.push(Math.max(.1,wxProfile.water+Math.sin(Date.now()/4300)*.16+(Math.random()-.5)*.06));Object.values(wxData).forEach(a=>a.shift());drawWeatherLive();},550);
+}
+function closeWeatherZone(){document.getElementById('weatherDetail').style.display='none';document.getElementById('weatherList').style.display='block';clearInterval(wxInterval);wxInterval=null;}
+function selectWeatherDay(day,button){weatherDay=day;document.querySelectorAll('.wx-date').forEach(b=>b.classList.toggle('active',b===button));renderWxForecastTable(day);}
+const wxDayData={
+  '20/08':[['00-04','2.2 m','7 kn','0.9 kn','An toàn'],['04-08','1.8 m','9 kn','1.0 kn','An toàn'],['08-12','1.4 m','14 kn','1.4 kn','Chú ý'],['12-16','1.1 m','17 kn','1.6 kn','Chú ý'],['16-20','1.6 m','11 kn','1.0 kn','An toàn'],['20-24','2.1 m','8 kn','0.8 kn','An toàn']],
+  '21/08':genTable,
+  '22/08':[['00-04','1.9 m','10 kn','1.1 kn','An toàn'],['04-08','1.5 m','13 kn','1.3 kn','Chú ý'],['08-12','1.1 m','20 kn','1.9 kn','Nguy hiểm'],['12-16','1.0 m','21 kn','2.0 kn','Nguy hiểm'],['16-20','1.4 m','15 kn','1.4 kn','Chú ý'],['20-24','1.9 m','10 kn','1.0 kn','An toàn']]
+};
+function renderWxForecastTable(day){
+  const rows=wxDayData[day]||wxDayData['21/08'];
+  document.getElementById('wxForecastTable').innerHTML='<tr><th>Khung giờ</th><th>Mực nước</th><th>Gió</th><th>Dòng chảy</th><th>Đánh giá</th></tr>'+
+    rows.map(r=>`<tr><td>${r[0]}h</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="badge ${badgeClass(r[4])}">${r[4]}</span></td></tr>`).join('');
+}
+renderWxForecastTable('21/08');
+function drawWeatherLive(){
+  drawWeatherChart('wxWind',wxData.wind,Math.max(28,wxProfile.wind+8),'#2563EB','kn');
+  drawWeatherChart('wxCurrent',wxData.current,Math.max(2.5,wxProfile.current+1),'#16A34A','kn');
+  drawWeatherChart('wxWater',wxData.water,Math.max(3.6,wxProfile.water+1),'#D97706','m');
+  document.getElementById('wxWindNow').textContent=wxData.wind.at(-1).toFixed(1);document.getElementById('wxCurrentNow').textContent=wxData.current.at(-1).toFixed(1);document.getElementById('wxWaterNow').textContent=wxData.water.at(-1).toFixed(1);
+}
+function drawWeatherChart(id,data,ceiling,color,unit){
+  const svg=document.getElementById(id); if(!svg||!data.length) return;
+  svg.setAttribute('viewBox','0 0 360 86');
+  const w=360,h=86,l=48,r=14,t=6,b=18,plotW=w-l-r,plotH=h-t-b;
+  const floor=Math.max(0,Math.floor((Math.min(...data)-Math.max(.1,ceiling*.10))*10)/10);
+  const top=Math.ceil(Math.max(ceiling,Math.max(...data)+Math.max(.1,ceiling*.08))*10)/10;
+  const x=i=>l+(i/(data.length-1))*plotW, y=v=>t+(top-v)/(top-floor)*plotH;
+  const points=data.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  let grid='';
+  for(let i=0;i<4;i++){const yy=t+i*plotH/3,val=top-(top-floor)*i/3;grid+=`<line class="wx-chart-grid" x1="${l}" y1="${yy}" x2="${w-r}" y2="${yy}"/><text class="wx-chart-label" x="${l-6}" y="${yy+3}" text-anchor="end">${val.toFixed(1)}</text>`;}
+  const ticks=[['-30m',0],['Now',.5],['+30m',1]]; const xTicks=ticks.map(([label,pos])=>`<text class="wx-chart-label" x="${l+plotW*pos}" y="${h-8}" text-anchor="middle">${label}</text>`).join('');
+  const lastX=x(data.length-1),lastY=y(data.at(-1));
+  svg.innerHTML=`<title>Biểu đồ theo thời gian, đơn vị ${unit}</title>${grid}<line class="wx-chart-axis" x1="${l}" y1="${t}" x2="${l}" y2="${h-b}"/><line class="wx-chart-axis" x1="${l}" y1="${h-b}" x2="${w-r}" y2="${h-b}"/>${xTicks}<polyline class="wx-chart-line" stroke="${color}" points="${points}"/><circle class="wx-chart-dot" cx="${lastX}" cy="${lastY}" r="4" fill="${color}"/><g class="wx-chart-tooltip" visibility="hidden"><line id="${id}Cursor" x1="0" y1="${t}" x2="0" y2="${h-b}" stroke="#52657B" stroke-dasharray="3 3"/><rect id="${id}TipBg" x="0" y="0" width="88" height="20" rx="4"/><text id="${id}TipText" x="0" y="0"></text></g>`;
+  const showTip=e=>{const box=svg.getBoundingClientRect(), mouseX=(e.clientX-box.left)/box.width*w; const idx=Math.max(0,Math.min(data.length-1,Math.round((mouseX-l)/plotW*(data.length-1)))); const px=x(idx),py=y(data[idx]); const tipX=Math.min(w-r-90,Math.max(l+4,px+7)),tipY=Math.max(t+3,py-24); document.getElementById(id+'Cursor').setAttribute('x1',px);document.getElementById(id+'Cursor').setAttribute('x2',px);const bg=document.getElementById(id+'TipBg');bg.setAttribute('x',tipX);bg.setAttribute('y',tipY);const label=document.getElementById(id+'TipText');label.setAttribute('x',tipX+7);label.setAttribute('y',tipY+13);label.textContent=`${Math.round((idx-(data.length-1))*550/1000)}m · ${data[idx].toFixed(2)} ${unit}`;label.parentElement.setAttribute('visibility','visible');};
+  svg.onpointermove=showTip; svg.onpointerleave=()=>svg.querySelector('.wx-chart-tooltip').setAttribute('visibility','hidden');
+}
+
+/* ---------- Alerts state ---------- */
+let alerts=[];
+let currentFilter='all';
+function levelColor(l){ return l==='Nguy hiểm cao'?'var(--danger)':(l==='Chú ý'?'var(--warn)':(l==='An toàn'?'var(--safe)':'var(--text-faint)')); }
+function statusLabel(s){ return s==='new'?'Mới':(s==='ack'?'Đã xác nhận':'Đã xử lý'); }
+function statusColor(s){ return s==='new'?'danger':(s==='ack'?'warn':'safe'); }
+function renderAlerts(filter){
+  filter=filter||currentFilter;
+  const wrap=document.getElementById('alertListWrap');
+  if(wrap){
+    const list=alerts.filter(a=>filter==='all'||a.status===filter);
+    wrap.innerHTML=list.map(a=>`<div class="alertlist-item"><div class="dotcol" style="background:${levelColor(a.level)};"></div><div class="body"><div class="t1">${a.title}</div><div class="t2">${a.time} - ${a.detail}</div></div><span class="status-pill" style="background:var(--${statusColor(a.status)}-bg);color:var(--${statusColor(a.status)});">${statusLabel(a.status)}</span></div>`).join('') || `<div style="font-size:12.5px;color:var(--text-faint);">Không có cảnh báo phù hợp.</div>`;
+  }
+  const newCount=alerts.filter(a=>a.status==='new').length;
+  const nb=document.getElementById('navAlertBadge'); nb.style.display=newCount?'flex':'none'; nb.textContent=newCount;
+  document.getElementById('bellCount').textContent=newCount;
+  document.getElementById('bellFab').classList.toggle('show', newCount>0 && document.getElementById('alertCard').classList.contains('hidden'));
+}
+function filterAlerts(elx){ document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('on')); elx.classList.add('on'); currentFilter=elx.dataset.f; renderAlerts(); }
+function minimizeAlert(){alertPolicy.acknowledge(); document.getElementById('alertCard').classList.add('hidden'); renderAlerts(); }
+function reopenAlert(){ document.getElementById('alertCard').classList.remove('hidden'); renderAlerts(); }
+function ackAlert(){alertPolicy.acknowledge();const active=alerts.find(a=>a.id===window.pacsActiveAlertId)||alerts[0];if(parent!==window)parent.postMessage({type:'pacs-alert-status',status:'ack',title:active?.title},location.origin);if(active)active.status='ack';document.getElementById('alertCard').classList.add('hidden');toast('Đã xác nhận cảnh báo.');renderAlerts();renderFeedback();}
+function resolveAlert(){alertPolicy.acknowledge();const active=alerts.find(a=>a.id===window.pacsActiveAlertId)||alerts[0];if(parent!==window)parent.postMessage({type:'pacs-alert-status',status:'resolved',title:active?.title},location.origin);if(active)active.status='resolved';document.getElementById('alertCard').classList.add('hidden');closeSheet('riskSheet');toast('Đã đánh dấu tình huống xử lý xong.');renderAlerts();renderFeedback();}
+renderAlerts(); renderFeedback();
+
+/* ---------- Feedback ---------- */
+function renderFeedback(){
+  const wrap=document.getElementById('fbListWrap');
+  const items=alerts;
+  wrap.innerHTML = items.map(a=>`
+    <div class="fb-item" id="fb-${a.id}">
+      <div class="ft"><b>${a.time}</b> - ${a.title} <span class="badge ${statusColor(a.status)==='danger'?'danger':(statusColor(a.status)==='warn'?'warn':'safe')}">${statusLabel(a.status)}</span></div>
+      <div class="fb-choices">
+        <div class="fb-choice" onclick="selFb('${a.id}','accurate',this)">Chính xác</div>
+        <div class="fb-choice" onclick="selFb('${a.id}','partial',this)">Một phần</div>
+        <div class="fb-choice" onclick="selFb('${a.id}','wrong',this)">Sai</div>
+      </div>
+    </div>`).join('') || `<div style="font-size:12.5px;color:var(--text-faint);">Chưa có cảnh báo nào cần phản hồi.</div>`;
+}
+function selFb(id,kind,elx){
+  if(kind==='accurate'){
+    const alert=alerts.find(a=>a.id===id); if(alert) alert.fbAccurate=true;
+    toast('Đã ghi nhận phản hồi - cảm ơn hoa tiêu.');
+    renderFeedback();
+    return;
+  }
+  elx.parentElement.querySelectorAll('.fb-choice').forEach(x=>x.classList.remove('sel'));
+  elx.classList.add('sel');
+}
+
+buildTimetable();
+</script>
+<script>document.getElementById('screen-login').style.display='none';document.getElementById('appShell').classList.remove('hidden');boarded=true;ensureMap();showPanel('screen-map');updateMapMode();</script><script>
+window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==parent)return;
+ const data=event.data;if(typeof data?.dark==='boolean')document.body.classList.toggle('map-dark',data.dark);if(data?.type==='pacs-wind')triggerWeatherAlert('Gành Rái','Gió tăng 23–30 kn','Kiểm tra điều kiện tại khu vực phía trước.');
+ if(data?.type==='pacs-clock'&&Number.isFinite(data.minute)){simSeconds=((data.minute%1440)+1440)%1440*60;window.pacsDate=String(data.date||'').split('-').reverse().join('/');window.pacsShipName=String(data.name||'Tàu của tôi');window.pacsTripDate=data.date;if(Number.isFinite(data.draft)&&data.draft>0)window.pacsDraft=data.draft;tickSimClock();updateOwnZoneStatus()}
+});
+</script><script>
+const mapMode=new URLSearchParams(location.search).get('mode');
+if(mapMode==='overview'){boarded=false;updateMapMode();}
+const fleet=document.createElement('div');fleet.style.cssText='position:fixed;bottom:40px;left:12px;z-index:25;background:#fffffff0;border:1px solid #d8e3f2;border-radius:8px;padding:8px;max-height:160px;max-width:300px;overflow:auto;font-size:11px';if(mapMode==='overview')document.body.appendChild(fleet);
+window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==parent)return;const d=event.data;if(typeof d?.dark==='boolean')document.body.classList.toggle('map-dark',d.dark);if(d?.type==='pacs-fleet'){fleet.replaceChildren();const title=document.createElement('b');title.textContent='Chuyến đang theo dõi · '+(d.trips||[]).length;fleet.appendChild(title);(d.trips||[]).forEach(t=>{const b=document.createElement('button');b.style.cssText='display:block;margin-top:6px;width:100%;text-align:left;padding:8px;border:1px solid #d8e3f2;border-radius:5px;background:white;color:#244a68';b.textContent=t.name+' → '+t.port;b.onclick=()=>parent.postMessage({type:'pacs-open-trip',id:t.id},location.origin);fleet.appendChild(b)})}});
+</script><script>
+(function(){
+const mode=new URLSearchParams(location.search).get('mode');window.pacsReplay=mode==='replay';
+if(window.pacsReplay){document.body.classList.add('replay-mode');simPaused=true;document.getElementById('mapPause').textContent='Phát lại';document.querySelector('.map-demo-tag').textContent='PHÁT LẠI · Vị trí đã ghi';}
+const panel=document.getElementById('sidePanel');
+document.getElementById('mapDetails').onclick=()=>{panel.hidden=!panel.hidden;document.body.classList.toggle('map-wide',panel.hidden);document.getElementById('mapDetails').textContent=panel.hidden?'Hiện thông số':'Ẩn thông số';window.pacsMapView?.center()};
+if(mode==='overview'){panel.hidden=true;document.body.classList.add('map-wide');document.getElementById('mapDetails').textContent='Hiện thông số'}
+if(mode==='overview')window.pacsMapView?.fit();else window.pacsMapView?.center();
+function world(p,heading=0,sog=0){return {lat:LAT_T-p.y/(60*PXNM),lon:LON0+p.x/(60*COSL*PXNM),heading,sog}}
+function capture(){if(window.pacsReplay||mode==='overview'||mode==='monitor')return;const targets=(window._vessels||[]).filter(v=>v.curPos).map(v=>({...world(v.curPos,v.curPos.ang,v.speed||7.2),id:v.id,name:v.name}));parent.postMessage({type:'pacs-track',frame:{aisFailure:!!window.pacsAisFailure,scenario:window.pacsScenario||'',own:world(ownPos,ownHeading,navState.sog),targets,simMinute:simSeconds/60}},location.origin)}
+setTimeout(capture,900);setInterval(capture,10000);
+const originals=window._vessels.map(v=>({v,path:v.path,t:v.t,speed:v.speed}));
+function restore(resetPositions=false){window.pacsAisFailure=false;window.pacsScenario='';window.pacsWeather='';window.pacsLowWater=false;originals.forEach(o=>{if(resetPositions){o.v.t=o.t;o.v.contactActive=false}else if(o.v.scenarioRate>1&&o.v.curPos)o.v.t=nearestTOnPath(o.path,o.v.curPos.x,o.v.curPos.y);o.v.path=o.path;o.v.speed=o.speed;o.v.scenarioRate=1});document.getElementById('scenarioBanner').textContent='';document.getElementById('mapSvg').style.opacity='1';document.querySelector('#sidePanel .sp-block:nth-child(2) .sp-val').textContent='AIS ·';nearAlertsShown.clear();hitAlertsShown.clear()}
+function log(kind){if(parent!==window)parent.postMessage({type:'pacs-scenario',scenario:kind},location.origin)}
+document.getElementById('mapScenarios').onclick=()=>{const p=document.getElementById('scenarioPanel');p.hidden=!p.hidden};
+document.getElementById('scenarioRun').onclick=()=>{
+ if(!window.pacsAutoAdvancing)document.getElementById('scenarioAuto').checked=false;restore();simPaused=false;const kind=document.getElementById('scenarioChoice').value,banner=document.getElementById('scenarioBanner');window.pacsScenario=kind;
+ const advice={
+ wind:['Gió giật 23–30 kn','Gió giật tăng trong khu vực tiếp cận. Đối chiếu hướng gió với hướng tàu, cập nhật sức gió giật trước khi vào đoạn hẹp; thống nhất khả năng giữ hướng với thuyền trưởng. Khi vẫn đang đón: đánh giá lại vị trí và thời điểm đón với cano.'],
+ crosswind:['Gió ngang tại điểm đón · 24 kn','Gió ngang 24 kn tác động vào mạn tàu tại điểm đón. Kiểm tra mạn khuất gió, độ ổn định thang hoa tiêu và giới hạn cano với thuyền trưởng / cano; nếu chưa thống nhất được điều kiện đón, báo điều độ để điều chỉnh giờ hoặc vị trí.'],
+ current:['Dòng ngang tăng · 2,2 kn','Dòng ngang 2,2 kn: theo dõi chênh lệch COG / heading và khoảng cách tới mép luồng. So sánh hướng dòng với hướng quay dự kiến; phối hợp tàu lai khi gần cầu và kiểm tra khả năng giữ vị trí trước khi tiếp cận.'],
+ visibility:['Tầm nhìn giảm còn 0,4 NM','Tầm nhìn 0,4 NM: tăng đối chiếu radar và quan sát, kiểm tra mục tiêu nhỏ không có AIS; phối hợp thứ tự qua khúc cong với điều độ. Xem xét tốc độ theo tầm nhìn và khoảng dừng cùng thuyền trưởng.'],
+ combined:['Gió giật + tàu cắt ngang','Gió giật 23–30 kn đồng thời có tàu cắt ngang phía trước. Ưu tiên xác nhận thứ tự qua điểm cắt; so sánh phương án tới điểm gặp muộn hơn, đồng thời kiểm tra khả năng giữ hướng khi giảm tốc dưới tác động gió ngang.']};
+ if(['crossing','combined','overtaking'].includes(kind)){const v=window._vessels[0];if(kind==='overtaking'){const a=ownHeading*Math.PI/180,dx=Math.sin(a),dy=-Math.cos(a);v.path=[[ownPos.x-dx*300,ownPos.y-dy*300],[ownPos.x+dx*500,ownPos.y+dy*500]];v.t=.05;v.speed=Math.max(navState.sog+3,10);v.scenarioRate=1;banner.textContent='Tàu phía sau vượt lên';showAlert('Chú ý','Tàu phía sau xin vượt','Tốc độ mục tiêu '+v.speed.toFixed(1)+' kn so với tàu mình '+navState.sog.toFixed(1)+' kn. Thống nhất vị trí vượt ngoài khúc cong; kiểm tra bề rộng luồng và tàu đối hướng trước khi chấp thuận.','collision-overtaking-'+v.id)}else{v.path=[[ownPos.x-320,ownPos.y-80],[ownPos.x+320,ownPos.y+80]];v.t=.05;v.scenarioRate=25;banner.textContent='Tàu cắt ngang phía trước';if(kind==='crossing')showAlert('Chú ý','Tàu cắt ngang phía trước','Xác nhận thứ tự qua điểm cắt với tàu mục tiêu; theo dõi CPA/TCPA và so sánh phương án tới điểm gặp sau tàu cắt ngang.','collision-scenario-'+v.id)}}
+ if(advice[kind]){banner.textContent=advice[kind][0];showAlert(kind==='combined'?'Nguy hiểm cao':'Chú ý',advice[kind][0],advice[kind][1],'weather-'+kind);window.pacsWeather=kind}
+ if(kind==='ukc'){window.pacsLowWater=true;const ukc=computeUkcValue(ownPos);banner.textContent='Mực nước giảm · UKC '+ukc.toFixed(2)+' m';showAlert(ukc<1?'Nguy hiểm cao':'Chú ý','UKC giảm khi mực nước hạ','UKC tại vị trí hiện tại còn '+ukc.toFixed(2)+' m. Đối chiếu độ sâu và mớn thực tế; so sánh khả năng chờ nước với thời gian còn đủ nước trước khi vào đoạn hạn chế. Không suy ra UKC tại các đoạn phía trước chỉ từ vị trí hiện tại.','ukc-water')}
+ if(kind==='ais'){window.pacsAisFailure=true;banner.textContent='AIS gián đoạn · Đang giữ vị trí nhận cuối';document.querySelector('#sidePanel .sp-block:nth-child(2) .sp-val').textContent='AIS GIÁN ĐOẠN';showAlert('Nguy hiểm cao','Mất cập nhật AIS','Mục tiêu đang giữ vị trí nhận cuối, CPA/TCPA không tiếp tục được tính. Đối chiếu radar, ghi nhận mục tiêu gần nhất và liên lạc VHF; kiểm tra lại nguồn AIS trước khi dùng dự báo gặp tàu.','system-ais')}
+ document.getElementById('mapPause').textContent='Tạm dừng';log(kind);capture();
+};
+let automaticCaseIndex=0,automaticCaseAt=Date.now()+45000;
+const automaticCases=['wind','current','visibility','ukc','ais'];
+setInterval(()=>{if(window.pacsReplay||mode==='overview'||mode==='monitor'||simPaused||!document.getElementById('scenarioAuto').checked||Date.now()<automaticCaseAt)return;document.getElementById('scenarioChoice').value=automaticCases[automaticCaseIndex%automaticCases.length];window.pacsAutoAdvancing=true;document.getElementById('scenarioRun').onclick();window.pacsAutoAdvancing=false;automaticCaseIndex++;automaticCaseAt=Date.now()+90000},1000);
+document.getElementById('scenarioStop').onclick=()=>{document.getElementById('scenarioAuto').checked=false;simPaused=true;window.pacsScenario='stop';document.getElementById('mapPause').textContent='Tiếp tục';document.getElementById('scenarioBanner').textContent='Đã dừng chuyển động';log('stop');capture()};
+document.getElementById('scenarioReset').onclick=()=>{restore(true);alertPolicy.reset();automaticCaseIndex=0;automaticCaseAt=Date.now()+45000;simPaused=false;document.getElementById('alertCard').classList.add('hidden');document.getElementById('mapPause').textContent='Tạm dừng';log('reset');capture()};
+window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==parent)return;const d=event.data;if(d?.type==='pacs-capture')capture();if(d?.type!=='pacs-replay'||!window.pacsReplay)return;const frame=d.frame;window.pacsTripDate=d.date;if(Number.isFinite(d.draft)&&d.draft>0)window.pacsDraft=d.draft;window.pacsLowWater=frame?.scenario==='ukc';window.pacsWeather=['wind','crosswind','current','visibility','combined'].includes(frame?.scenario)?frame.scenario:'';if(!frame?.own||!Number.isFinite(frame.own.lat)||!Number.isFinite(frame.own.lon))return;if(typeof d.dark==='boolean')document.body.classList.toggle('map-dark',d.dark);document.getElementById('scenarioBanner').textContent=frame.aisFailure?'PHÁT LẠI · AIS gián đoạn':frame.scenario?'PHÁT LẠI · Tình huống '+({crossing:'tàu cắt ngang',wind:'gió giật tăng',crosswind:'gió ngang khi đón',current:'dòng ngang tăng',visibility:'tầm nhìn giảm',overtaking:'tàu phía sau vượt lên',combined:'gió giật và tàu cắt ngang',ukc:'UKC giảm',ais:'AIS gián đoạn',stop:'đã dừng'}[frame.scenario]||frame.scenario):'';const p=P(frame.own.lat,frame.own.lon);ownPos={x:p[0],y:p[1]};ownRenderPos={...ownPos};ownHeading=frame.own.heading;renderedHeading=ownHeading;navState.sog=frame.own.sog;document.getElementById('sogValue').textContent=frame.own.sog.toFixed(1);document.getElementById('hdgValue').textContent=frame.own.heading.toFixed(1)+'°';document.getElementById('cogValue').textContent=frame.own.heading.toFixed(1)+'°';simSeconds=Number.isFinite(frame.simMinute)?frame.simMinute*60:simSeconds;renderOwnShip();updateOwnZoneStatus();if(!window.pacsReplayCentered){window.pacsMapView?.center();window.pacsReplayCentered=true}window.pacsShipName=d.name||'Tàu của tôi';(window._vessels||[]).forEach(v=>{const saved=(frame.targets||[]).find(t=>t.id===v.id),g=document.getElementById('ves_'+v.id),label=document.getElementById('lblg_'+v.id);g.style.display=saved?'':'none';label.style.display=saved&&labelsVisible?'':'none';if(saved){const xy=P(saved.lat,saved.lon);v.curPos={x:xy[0],y:xy[1],ang:saved.heading};g.setAttribute('transform',`translate(${xy[0]},${xy[1]}) rotate(${saved.heading})`);label.setAttribute('transform',`translate(${xy[0]},${xy[1]})`);}});document.getElementById('sp-time').textContent=new Date(frame.at).toLocaleTimeString('vi-VN');document.querySelector('.map-demo-tag').textContent='PHÁT LẠI · '+new Date(frame.at).toLocaleTimeString('vi-VN')+' · Dữ liệu đã ghi';updateSidePanelLive();});
+})();
+</script><script>
+(()=>{const tools=document.getElementById('mapTools');tools.addEventListener('toggle',()=>{if(tools.open){document.getElementById('scenarioPanel').hidden=true;document.getElementById('mapTargetPanel').hidden=true;document.getElementById('vinfoCard')?.classList.remove('show')}});tools.addEventListener('pointerdown',e=>e.stopPropagation());tools.addEventListener('wheel',e=>e.stopPropagation());tools.addEventListener('keydown',e=>{if(e.key==='Escape'){tools.open=false;tools.querySelector('summary').focus()}});tools.addEventListener('click',e=>{const id=e.target.closest('button')?.id;if(['mapTargets','mapScenarios','mapDetails','mapFit','mapCenter'].includes(id)){tools.open=false;if(id==='mapTargets')document.getElementById('scenarioPanel').hidden=true;if(id==='mapScenarios')document.getElementById('mapTargetPanel').hidden=true}});document.addEventListener('pointerdown',e=>{if(!tools.contains(e.target))tools.open=false});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{document.getElementById(b.dataset.close).hidden=true}));document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('scenarioPanel').hidden=true;document.getElementById('mapTargetPanel').hidden=true}})})();
+</script></body>
+</html>
