@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.wrangler/
+.next/
+.env*
+.dev.vars*
+*.tsbuildinfo
+deploy-check/
